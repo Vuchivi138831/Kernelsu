@@ -76,7 +76,7 @@ jobs:
     # ===== 5. BIÊN DỊCH KERNEL KHỚP TRÌNH BIÊN DỊCH GỐC =====
     - name: Compile Kernel
       run: |
-        # Đưa Clang 12 vừa tải lên đầu biến môi trường PATH
+        # Đưa Clang 12 và các công cụ hỗ trợ lên đầu biến PATH
         export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
         
         export ARCH=arm64
@@ -92,15 +92,19 @@ jobs:
         export LOCALVERSION=""
         mkdir -p out
 
+        # Nạp cấu hình defconfig gốc
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # Bắt đầu quá trình build với cấu hình đồng bộ hoàn toàn với hãng
+        # Bắt đầu quá trình build với cờ LLVM_IAS=1 để vá triệt để lỗi /usr/bin/as
         make -j$(nproc --all) O=out \
         CC=clang \
         CLANG_TRIPLE=aarch64-linux-gnu- \
         CROSS_COMPILE=aarch64-linux-gnu- \
         CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+        HOSTCC=clang \
+        HOSTCXX=clang++ \
+        LLVM_IAS=1 \
         HOSTCFLAGS="-fcommon" \
         KCFLAGS="-w" \
         LOCALVERSION="" \
