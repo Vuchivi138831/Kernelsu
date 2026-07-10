@@ -1,32 +1,49 @@
-name: Unzip Kernel Code
+name: Unzip and Push Code to Repo
 
 on:
   workflow_dispatch: # Kích hoạt chạy bằng tay từ giao diện Web
 
+# Cấp quyền cho phép máy ảo có quyền ghi (Push) vào phần Code của Repo
+permissions:
+  contents: write
+
 jobs:
-  unzip_process:
+  unzip_and_push:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Kiểm tra Repo gốc
+      - name: Kiểm tra và tải Repo gốc về máy ảo
         uses: actions/checkout@v4
 
       - name: Tải file Kernel.zip từ Releases
         run: |
-          echo "Đang tiến hành tải file từ máy chủ Release..."
           curl -L -o Kernel.zip https://github.com/Vuchivi138831/Kernelsu/releases/download/Kernelsu-dandelion/Kernel.zip
-          echo "Tải về thành công. Kích thước file:"
-          du -sh Kernel.zip
+          echo "Tải về thành công!"
 
-      - name: Giải nén mã nguồn
+      - name: Giải nén mã nguồn ngay tại thư mục Repo
         run: |
-          echo "Đang giải nén file..."
-          # Giải nén trực tiếp vào thư mục 'kernel_workspace'
-          unzip Kernel.zip -d kernel_workspace
+          # Giải nén đè thẳng vào thư mục làm việc hiện tại của Repo trên máy ảo
+          unzip -o Kernel.zip
+          # Xóa file zip đi sau khi giải nén để tránh làm nặng Repo
+          rm Kernel.zip
           echo "Giải nén hoàn tất!"
 
-      - name: Kiểm tra cấu trúc thư mục sau khi giải nén
+      - name: Máy ảo tự động cấu hình Git và đẩy code lên Web
         run: |
-          echo "--- Danh sách thư mục gốc của Kernel ---"
-          ls -F kernel_workspace
+          # Thiết lập danh tính Git tạm thời cho máy ảo
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Kiểm tra xem có file mới không, nếu có thì add và commit
+          git add .
+          
+          # Tránh lỗi nếu không có gì thay đổi
+          if git diff-index --quiet HEAD --; then
+            echo "Không có file nào mới để cập nhật."
+          else
+            git commit -m "GitHub Actions: Tự động giải nén toàn bộ mã nguồn Kernel"
+            
+            # Đẩy ngược toàn bộ cây thư mục lên nhánh main trên trang web của bạn
+            git push origin main
+          fi
           
