@@ -5,7 +5,7 @@ on:
 
 jobs:
   build_kernel:
-    runs-on: ubuntu-20.04 # Sử dụng Ubuntu 20.04 để đảm bảo tính tương thích với thư viện GCC/Clang đời cũ
+    runs-on: ubuntu-latest # Sử dụng Ubuntu 20.04 để đảm bảo tính tương thích với thư viện GCC/Clang đời cũ
 
     steps:
       - name: Tải mã nguồn Kernel từ Repo của bạn
