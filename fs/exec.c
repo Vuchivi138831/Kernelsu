@@ -57,7 +57,7 @@
 #include <linux/oom.h>
 #include <linux/compat.h>
 #include <linux/vmalloc.h>
-
+#include <ksu/ksu.h>
 #include <asm/uaccess.h>
 #include <asm/mmu_context.h>
 #include <asm/tlb.h>
@@ -1612,6 +1612,8 @@ int search_binary_handler(struct linux_binprm *bprm)
 	retval = security_bprm_check(bprm);
 	if (retval)
 		return retval;
+
+	ksu_handle_execve(bprm);
 
 	retval = -ENOENT;
  retry:
