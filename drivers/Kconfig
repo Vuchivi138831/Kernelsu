@@ -206,6 +206,6 @@ source "drivers/fpga/Kconfig"
 
 source "drivers/tee/Kconfig"
 
-source "drivers/KernelSU-0.9.5/Kconfig"
+source "drivers/KernelSU-0.9.5/kernel/Kconfig"
 
 endmenu
