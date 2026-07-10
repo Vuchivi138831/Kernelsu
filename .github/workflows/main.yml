@@ -36,6 +36,7 @@ jobs:
         mkdir -p $GITHUB_WORKSPACE/clang
         cd $GITHUB_WORKSPACE/clang
         echo "[+] Đang tải chính xác Google AOSP Clang r353983c (v9.0.3)..."
+        # Link tải trực tiếp gói Clang r353983c từ kho lưu trữ Android của Google
         wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android10-release/clang-r353983c.tar.gz
         tar -xf clang-r353983c.tar.gz
         rm -f clang-r353983c.tar.gz
@@ -68,6 +69,7 @@ jobs:
           echo "[+] Đã tìm thấy Cache! Bỏ qua bước cài đặt Python2."
         fi
 
+        # Tạo liên kết ảo để hệ thống nhận diện lệnh `python`
         sudo ln -sf /opt/python2/bin/python2.7 /usr/bin/python
         python --version
 
@@ -90,24 +92,17 @@ jobs:
         export LOCALVERSION=""
         mkdir -p out
 
-        # Tự động đóng (vô hiệu hóa) cả 2 kiểu khai báo met_drv trong Makefile để không bị lỗi file vendor thiếu
-        if [ -f "drivers/misc/mediatek/Makefile" ]; then
-          echo "[+] Tự động dọn dẹp driver lỗi met_drv..."
-          sed -i 's/obj-y += met_drv\//+# obj-y += met_drv\//g' drivers/misc/mediatek/Makefile
-          sed -i 's/obj-y += met_drv\/4.9\//+# obj-y += met_drv\/4.9\//g' drivers/misc/mediatek/Makefile
-        fi
-
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # Ép trình dịch Clang 9 nuốt trọn KernelSU bằng cách nới lỏng kiểm tra C
+        # Bắt đầu quá trình build với cấu hình đồng bộ hoàn toàn với hãng
         make -j$(nproc --all) O=out \
         CC=clang \
         CLANG_TRIPLE=aarch64-linux-gnu- \
         CROSS_COMPILE=aarch64-linux-gnu- \
         CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
         HOSTCFLAGS="-fcommon" \
-        KCFLAGS="-w -std=gnu11 -Wno-error=mixed-declarations" \
+        KCFLAGS="-w" \
         LOCALVERSION="" \
         EXTRAVERSION=""
 
@@ -116,9 +111,7 @@ jobs:
       if: success()
       run: |
         cd out/arch/arm64/boot/
-        if [ -f Image.gz-dtb ]; then
-          zip -r9 Kernel-Redmi9A-KSU.zip Image.gz-dtb
-        elif [ -f Image.gz ]; then
+        if [ -f Image.gz ]; then
           zip -r9 Kernel-Redmi9A-KSU.zip Image.gz
         else
           echo "Error: Image.gz not found!"
@@ -132,3 +125,4 @@ jobs:
       with:
         name: Kernel-Redmi9A-KSU-Zip
         path: out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip
+        
