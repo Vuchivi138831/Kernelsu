@@ -1,0 +1,32 @@
+name: Unzip Kernel Code
+
+on:
+  workflow_dispatch: # Kích hoạt chạy bằng tay từ giao diện Web
+
+jobs:
+  unzip_process:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kiểm tra Repo gốc
+        uses: actions/checkout@v4
+
+      - name: Tải file Kernel.zip từ Releases
+        run: |
+          echo "Đang tiến hành tải file từ máy chủ Release..."
+          curl -L -o Kernel.zip https://github.com/Vuchivi138831/Kernelsu/releases/download/Kernelsu-dandelion/Kernel.zip
+          echo "Tải về thành công. Kích thước file:"
+          du -sh Kernel.zip
+
+      - name: Giải nén mã nguồn
+        run: |
+          echo "Đang giải nén file..."
+          # Giải nén trực tiếp vào thư mục 'kernel_workspace'
+          unzip Kernel.zip -d kernel_workspace
+          echo "Giải nén hoàn tất!"
+
+      - name: Kiểm tra cấu trúc thư mục sau khi giải nén
+        run: |
+          echo "--- Danh sách thư mục gốc của Kernel ---"
+          ls -F kernel_workspace
+          
