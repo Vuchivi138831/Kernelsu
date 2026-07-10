@@ -1,0 +1,40 @@
+name: Unzip and Overwrite Exec Code
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  unzip-and-update:
+    runs-on: ubuntu-latest
+    
+    # Cấp quyền đọc và ghi (Read and Write) cho GitHub Action workflow
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unzip and Overwrite
+        run: |
+          # Giải nén file fs.zip và tự động ghi đè (-o) các file cũ (như exec.c) mà không cần xóa trước
+          unzip -o fs.zip -d .
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Thêm file exec.c vừa được ghi đè vào staging
+          git add fs/exec.c
+          # Hoặc bạn có thể dùng 'git add .' nếu muốn commit toàn bộ thay đổi khác từ file zip
+          
+          # Kiểm tra xem có sự thay đổi dữ liệu nào không trước khi tạo commit
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "Automated update: overwrite exec.c from fs.zip"
+            git push
+          else
+            echo "No changes detected."
+          fi
