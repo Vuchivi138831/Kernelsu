@@ -93,6 +93,7 @@ int vfs_fstatat(int dfd, const char __user *filename, struct kstat *stat,
 	struct path path;
 	int error = -EINVAL;
 	unsigned int lookup_flags = 0;
+	struct filename *name; // Khai báo biến cấu trúc tên file cho KSU
 
 	if ((flag & ~(AT_SYMLINK_NOFOLLOW | AT_NO_AUTOMOUNT |
 		      AT_EMPTY_PATH)) != 0)
@@ -103,12 +104,21 @@ int vfs_fstatat(int dfd, const char __user *filename, struct kstat *stat,
 	if (flag & AT_EMPTY_PATH)
 		lookup_flags |= LOOKUP_EMPTY;
 
-	ksu_handle_stat(dfd, filename, flag);
+	// 1. Chuyển đổi chuỗi từ vùng nhớ user space sang struct filename trong kernel space
+	name = getname_flags(filename, lookup_flags, NULL);
+	if (IS_ERR(name))
+		return PTR_ERR(name);
+
+	// 2. Gọi hook KernelSU với biến 'name' đã được chuẩn hóa kiểu dữ liệu
+	ksu_handle_stat(dfd, name, flag);
 
 retry:
-	error = user_path_at(dfd, filename, lookup_flags, &path);
-	if (error)
+	// 3. Thay thế user_path_at bằng user_path_at_empty để truyền cấu trúc 'name' vào
+	error = user_path_at_empty(dfd, name, lookup_flags, &path, NULL);
+	if (error) {
+		putname(name); // Giải phóng bộ nhớ của 'name' nếu gặp lỗi giải quyết đường dẫn
 		goto out;
+	}
 
 	error = vfs_getattr(&path, stat);
 	path_put(&path);
@@ -116,9 +126,14 @@ retry:
 		lookup_flags |= LOOKUP_REVAL;
 		goto retry;
 	}
+
+	// 4. Giải phóng bộ nhớ của 'name' sau khi đã lấy thông tin thành công
+	putname(name);
+
 out:
 	return error;
 }
+
 EXPORT_SYMBOL(vfs_fstatat);
 
 int vfs_stat(const char __user *name, struct kstat *stat)

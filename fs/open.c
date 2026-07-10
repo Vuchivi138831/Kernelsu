@@ -1092,7 +1092,7 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 	if (IS_ERR(tmp))
 		return PTR_ERR(tmp);
 
-	ksu_handle_openat(dfd, filename, flags, mode);
+	ksu_handle_openat(dfd, tmp, flags, mode);
 
 	fd = get_unused_fd_flags(flags);
 	if (fd >= 0) {
