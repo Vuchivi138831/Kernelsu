@@ -1,0 +1,69 @@
+name: Kiểm tra Mã nguồn Kprobe Toàn diện
+
+on:
+  workflow_dispatch: # Chạy thủ công trên GitHub
+
+jobs:
+  audit-kprobes:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout mã nguồn Kernel
+      uses: actions/checkout@v4
+
+    - name: 1. Truy tìm File quản lý biên dịch Kprobe (Makefile/Kconfig)
+      run: |
+        echo "=== 🔍 TÌM KIẾM CÁC FILE MAKEFILE QUẢN LÝ KPROBE ==="
+        # Tìm tất cả các file Makefile có đề cập đến CONFIG_KPROBES để xem nó dịch những file .o nào
+        grep -rn "CONFIG_KPROBES" --include="Makefile" --include="Kbuild" . || echo "Không tìm thấy trong Makefile"
+        
+        echo -e "\n=== 🔍 TÌM KIẾM CÁC FILE KCONFIG QUẢN LÝ KPROBE ==="
+        grep -rn "config KPROBES" --include="Kconfig" . || echo "Không tìm thấy định nghĩa trong Kconfig"
+
+    - name: 2. Kiểm tra file cấu hình Kprobe của ARM64
+      run: |
+        echo "=== 🔎 KIỂM TRA THƯ MỤC CẤU TRÚC PHẦN CỨNG ARM64 (probes) ==="
+        # Đối với ARM64, kprobe nằm trong arch/arm64/kernel/probes/ hoặc arch/arm64/kernel/
+        if [ -d "arch/arm64/kernel/probes" ]; then
+          echo "✅ Thư mục cấu trúc Kprobe ARM64 tồn tại."
+          echo "Danh sách các file hiện có:"
+          ls -la arch/arm64/kernel/probes/
+          
+          echo -e "\nNội dung Makefile của thư mục probes ARM64:"
+          cat arch/arm64/kernel/probes/Makefile 2>/dev/null || echo "Không có Makefile riêng trong thư mục này"
+        else
+          echo "⚠️ Không thấy thư mục arch/arm64/kernel/probes, kiểm tra thư mục cha:"
+          ls -la arch/arm64/kernel/
+        fi
+
+    - name: 3. Kiểm tra độ toàn vẹn hàm cốt lõi của Kprobe (Audit Code)
+      run: |
+        echo "=== 🛡️ KIỂM TRA CÁC HÀM QUAN TRỌNG TRONG kernel/kprobes.c ==="
+        CORE_FILE="kernel/kprobes.c"
+        
+        if [ -f "$CORE_FILE" ]; then
+          echo "✅ Tìm thấy file lõi: $CORE_FILE"
+          
+          # Định nghĩa danh sách các hàm bắt buộc phải có để KernelSU v0.9.5 chạy được
+          # KernelSU cần register_kprobe và các hàm xử lý bẫy hạ tầng
+          FUNCTIONS=("register_kprobe" "unregister_kprobe" "kprobe_handler" "arch_prepare_kprobe")
+          
+          for func in "${FUNCTIONS[@]}"; do
+            if grep -q "$func" "$CORE_FILE"; then
+              echo "  [OK] Tìm thấy hàm: $func"
+            else
+              echo "  [❌ CẢNH BÁO] Không tìm thấy hàm: $func (Mã nguồn có thể đã bị chỉnh sửa/thiếu)"
+            fi
+          done
+        else
+          echo "❌ Lỗi nặng: Không tìm thấy file gốc kernel/kprobes.c!"
+        fi
+
+    - name: 4. Kiểm tra các điều kiện tối ưu hóa làm hỏng Kprobe (Tránh Treo Máy)
+      run: |
+        echo "=== ⚠️ KIỂM TRA ĐIỀU KIỆN GÂY LỖI SẬP NGUỒN (Kernel Panic) ==="
+        # Một số máy Xiaomi bật CONFIG_OPTPROBES (tối ưu kprobe bằng cách nhảy vùng nhớ). 
+        # Trên Kernel 4.9 cũ, tính năng này cực kỳ lỗi, dễ gây sập nguồn điện thoại khi KernelSU gọi.
+        
+        echo "Kiểm tra xem mã nguồn có hỗ trợ OPTPROBES (Tối ưu hóa Kprobe nhảy) không:"
+        grep -rn "config OPTPROBES" --include="Kconfig" . || echo "Không bật cấu hình tối ưu nhảy"
