@@ -21,6 +21,11 @@ apksign {
 
 android {
     namespace = "me.weishu.kernelsu"
+        defaultConfig {
+            ndk {
+                abiFilters.add("armeabi-v7a")
+            }
+        }
 
     buildTypes {
         release {
