@@ -5,7 +5,7 @@ on:
 
 jobs:
   build_kernel:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # Chỉ định rõ bản 22.04 để cài đặt Python 2 dễ dàng hơn
 
     steps:
       - name: Tải mã nguồn Kernel từ Repo
@@ -14,10 +14,16 @@ jobs:
       - name: Cài đặt các công cụ phụ trợ hệ thống & Python 2
         run: |
           sudo apt-get update
-          # Cài đặt các thư viện cần thiết và Python 2 chính thức
-          sudo apt-get install -y bc build-essential libncurses5-dev libssl-dev xz-utils bzip2 gzip unzip curl git make u-boot-tools libmail-sendmail-perl liblz4-tool lzop python2
           
-          # Thiết lập liên kết để lệnh 'python' mặc định sẽ gọi Python 2 (bắt buộc cho một số mã nguồn MTK cũ)
+          # Thêm kho lưu trữ chứa Python 2 cho Ubuntu đời mới
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository -y universe
+          sudo apt-get update
+          
+          # Cài đặt các thư viện cần thiết và Python 2
+          sudo apt-get install -y bc build-essential libncurses5-dev libssl-dev xz-utils bzip2 gzip unzip curl git make u-boot-tools libmail-sendmail-perl liblz4-tool lzop python2-minimal
+          
+          # Thiết lập liên kết để lệnh 'python' mặc định sẽ gọi Python 2
           sudo ln -sf /usr/bin/python2 /usr/bin/python
           echo "Kiểm tra phiên bản Python hiện tại:"
           python --version
@@ -30,19 +36,17 @@ jobs:
             ${{ github.workspace }}/clang
             ${{ github.workspace }}/gcc64
             ${{ github.workspace }}/gcc32
-          key: ${{ runner.os }}-toolchains-v1
+          key: ${{ runner.os }}-toolchains-v2
 
       - name: Tải AOSP Clang và GCC Toolchains (Chỉ tải nếu chưa có trong Cache)
         if: steps.cache-toolchains.outputs.cache-hit != 'true'
         run: |
           echo "Không tìm thấy Cache. Bắt đầu tải Toolchains mới..."
           
-          echo "--- Tải Clang r383902 ---"
-          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 $GITHUB_WORKSPACE/clang-repo
+          echo "--- Tải Clang r383902 (Bản nén chuẩn của tư liệu Android) ---"
           mkdir -p $GITHUB_WORKSPACE/clang
-          # Di chuyển đúng phiên bản clang r383902 ra thư mục làm việc
-          mv $GITHUB_WORKSPACE/clang-repo/clang-r383902/* $GITHUB_WORKSPACE/clang/
-          rm -rf $GITHUB_WORKSPACE/clang-repo
+          # Tải bản prebuilt không chứa lịch sử git để giảm tối đa dung lượng tải
+          curl -L "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android11-release/clang-r383902.tar.gz" | tar -xzC $GITHUB_WORKSPACE/clang
 
           echo "--- Tải GCC 64-bit (GCC 4.9) ---"
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 $GITHUB_WORKSPACE/gcc64
@@ -98,4 +102,3 @@ jobs:
         with:
           name: Kernel-Dandelion-KSU
           path: thanh_pham/
-          
