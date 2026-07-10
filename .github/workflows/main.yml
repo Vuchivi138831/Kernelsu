@@ -30,17 +30,16 @@ jobs:
         gcc-arm-linux-gnueabi curl build-essential wget zlib1g-dev \
         libffi-dev libsqlite3-dev zip
 
-    # ===== 2. TẢI VÀ THIẾT LẬP GOOGLE AOSP CLANG 12 =====
-    - name: Download and Setup AOSP Clang 12
+    # ===== 2. TẢI VÀ THIẾT LẬP ĐÚNG BẢN GOOGLE AOSP CLANG GỐC (V9.0.3) =====
+    - name: Download and Setup AOSP Clang 9.0.3
       run: |
         mkdir -p $GITHUB_WORKSPACE/clang
         cd $GITHUB_WORKSPACE/clang
-        echo "[+] Đang tải chính xác Google AOSP Clang r416183b (v12.0.5)..."
-        # Link tải trực tiếp gói Clang r416183b từ nhánh android12-release của Google
-        wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android12-release/clang-r416183b.tar.gz
-        tar -xf clang-r416183b.tar.gz
-        rm -f clang-r416183b.tar.gz
-        echo "[+] Giải nén thành công Clang 12 tại $GITHUB_WORKSPACE/clang"
+        echo "[+] Đang tải chính xác Google AOSP Clang r353983c (v9.0.3)..."
+        wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android10-release/clang-r353983c.tar.gz
+        tar -xf clang-r353983c.tar.gz
+        rm -f clang-r353983c.tar.gz
+        echo "[+] Giải nén thành công Clang 9.0.3 tại $GITHUB_WORKSPACE/clang"
 
     # ===== 3. CẤU HÌNH CACHE CHO PYTHON2 (MÃ NGUỒN & THƯ MỤC CÀI ĐẶT) =====
     - name: Cache Python2 Core
@@ -69,20 +68,19 @@ jobs:
           echo "[+] Đã tìm thấy Cache! Bỏ qua bước cài đặt Python2."
         fi
 
-        # Tạo liên kết ảo để hệ thống nhận diện lệnh `python`
         sudo ln -sf /opt/python2/bin/python2.7 /usr/bin/python
         python --version
 
     # ===== 5. BIÊN DỊCH KERNEL KHỚP TRÌNH BIÊN DỊCH GỐC =====
     - name: Compile Kernel
       run: |
-        # Đưa Clang 12 và các công cụ hỗ trợ lên đầu biến PATH
+        # Đưa Clang 9.0.3 vừa tải lên đầu biến môi trường PATH
         export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
         
         export ARCH=arm64
         export SUBARCH=arm64
         
-        # Cấu hình biên dịch chéo bằng Clang 12
+        # Cấu hình biên dịch chéo bằng Clang 9
         export CC=clang
         export CROSS_COMPILE=aarch64-linux-gnu-
         export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
@@ -92,21 +90,24 @@ jobs:
         export LOCALVERSION=""
         mkdir -p out
 
-        # Nạp cấu hình defconfig gốc
+        # Tự động đóng (vô hiệu hóa) cả 2 kiểu khai báo met_drv trong Makefile để không bị lỗi file vendor thiếu
+        if [ -f "drivers/misc/mediatek/Makefile" ]; then
+          echo "[+] Tự động dọn dẹp driver lỗi met_drv..."
+          sed -i 's/obj-y += met_drv\//+# obj-y += met_drv\//g' drivers/misc/mediatek/Makefile
+          sed -i 's/obj-y += met_drv\/4.9\//+# obj-y += met_drv\/4.9\//g' drivers/misc/mediatek/Makefile
+        fi
+
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # Bắt đầu quá trình build với cờ LLVM_IAS=1 để vá triệt để lỗi /usr/bin/as
+        # Ép trình dịch Clang 9 nuốt trọn KernelSU bằng cách nới lỏng kiểm tra C
         make -j$(nproc --all) O=out \
         CC=clang \
         CLANG_TRIPLE=aarch64-linux-gnu- \
         CROSS_COMPILE=aarch64-linux-gnu- \
         CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-        HOSTCC=clang \
-        HOSTCXX=clang++ \
-        LLVM_IAS=1 \
         HOSTCFLAGS="-fcommon" \
-        KCFLAGS="-w" \
+        KCFLAGS="-w -std=gnu11 -Wno-error=mixed-declarations" \
         LOCALVERSION="" \
         EXTRAVERSION=""
 
@@ -116,13 +117,11 @@ jobs:
       run: |
         cd out/arch/arm64/boot/
         if [ -f Image.gz-dtb ]; then
-          echo "[+] Tìm thấy Image.gz-dtb, tiến hành đóng gói..."
           zip -r9 Kernel-Redmi9A-KSU.zip Image.gz-dtb
         elif [ -f Image.gz ]; then
-          echo "[+] Tìm thấy Image.gz, tiến hành đóng gói..."
           zip -r9 Kernel-Redmi9A-KSU.zip Image.gz
         else
-          echo "Error: Không tìm thấy file nhân thành phẩm!"
+          echo "Error: Image.gz not found!"
           exit 1
         fi
 
