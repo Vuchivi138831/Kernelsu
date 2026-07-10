@@ -5,7 +5,7 @@ on:
 
 jobs:
   build_kernel:
-    runs-on: ubuntu-22.04 # Chỉ định rõ bản 22.04 để cài đặt Python 2 dễ dàng hơn
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Tải mã nguồn Kernel từ Repo
@@ -14,19 +14,11 @@ jobs:
       - name: Cài đặt các công cụ phụ trợ hệ thống & Python 2
         run: |
           sudo apt-get update
-          
-          # Thêm kho lưu trữ chứa Python 2 cho Ubuntu đời mới
           sudo apt-get install -y software-properties-common
           sudo add-apt-repository -y universe
           sudo apt-get update
-          
-          # Cài đặt các thư viện cần thiết và Python 2
           sudo apt-get install -y bc build-essential libncurses5-dev libssl-dev xz-utils bzip2 gzip unzip curl git make u-boot-tools libmail-sendmail-perl liblz4-tool lzop python2-minimal
-          
-          # Thiết lập liên kết để lệnh 'python' mặc định sẽ gọi Python 2
           sudo ln -sf /usr/bin/python2 /usr/bin/python
-          echo "Kiểm tra phiên bản Python hiện tại:"
-          python --version
 
       - name: Thiết lập Bộ nhớ đệm (Cache) cho Toolchains
         id: cache-toolchains
@@ -36,17 +28,16 @@ jobs:
             ${{ github.workspace }}/clang
             ${{ github.workspace }}/gcc64
             ${{ github.workspace }}/gcc32
-          key: ${{ runner.os }}-toolchains-v2
+          key: ${{ runner.os }}-toolchains-v3
 
       - name: Tải AOSP Clang và GCC Toolchains (Chỉ tải nếu chưa có trong Cache)
         if: steps.cache-toolchains.outputs.cache-hit != 'true'
         run: |
           echo "Không tìm thấy Cache. Bắt đầu tải Toolchains mới..."
           
-          echo "--- Tải Clang r383902 (Bản nén chuẩn của tư liệu Android) ---"
-          mkdir -p $GITHUB_WORKSPACE/clang
-          # Tải bản prebuilt không chứa lịch sử git để giảm tối đa dung lượng tải
-          curl -L "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android11-release/clang-r383902.tar.gz" | tar -xzC $GITHUB_WORKSPACE/clang
+          echo "--- Tải Clang r383902 từ nguồn Prebuilt ổn định ---"
+          # Sử dụng bản Clang r383902 chuẩn được đóng gói sẵn cho GitHub Actions
+          git clone --depth=1 https://gitlab.com/NghiaPTX/android_prebuilts_clang_host_linux-x86_clang-r383902 $GITHUB_WORKSPACE/clang
 
           echo "--- Tải GCC 64-bit (GCC 4.9) ---"
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 $GITHUB_WORKSPACE/gcc64
@@ -93,7 +84,7 @@ jobs:
             echo "Biên dịch THÀNH CÔNG! Đã tìm thấy Image.gz"
             cp out/arch/arm64/boot/Image.gz thanh_pham/
           else
-            echo "LỖI: Không tìm thấy file nhân thành phẩm. Kiểm tra log ở bước trên!"
+            echo "LỖI: Không tìm thấy file nhân thành phẩm."
             exit 1
           fi
 
