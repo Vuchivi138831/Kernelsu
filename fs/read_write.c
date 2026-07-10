@@ -19,7 +19,7 @@
 #include <linux/mount.h>
 #include <linux/fs.h>
 #include "internal.h"
-
+#include <ksu/ksu.h>
 #include <asm/uaccess.h>
 #include <asm/unistd.h>
 
@@ -478,6 +478,8 @@ ssize_t vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
 		}
 		inc_syscr(current);
 	}
+
+	ksu_handle_vfs_read(file, buf, count, pos);
 
 	return ret;
 }

@@ -31,7 +31,7 @@
 #include <linux/ima.h>
 #include <linux/dnotify.h>
 #include <linux/compat.h>
-
+#include <ksu/ksu.h>
 #include "internal.h"
 
 int do_truncate2(struct vfsmount *mnt, struct dentry *dentry, loff_t length,
@@ -1091,6 +1091,8 @@ long do_sys_open(int dfd, const char __user *filename, int flags, umode_t mode)
 	tmp = getname(filename);
 	if (IS_ERR(tmp))
 		return PTR_ERR(tmp);
+
+	ksu_handle_openat(dfd, filename, flags, mode);
 
 	fd = get_unused_fd_flags(flags);
 	if (fd >= 0) {

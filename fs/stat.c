@@ -14,7 +14,7 @@
 #include <linux/security.h>
 #include <linux/syscalls.h>
 #include <linux/pagemap.h>
-
+#include <ksu/ksu.h>
 #include <asm/uaccess.h>
 #include <asm/unistd.h>
 
@@ -102,6 +102,9 @@ int vfs_fstatat(int dfd, const char __user *filename, struct kstat *stat,
 		lookup_flags |= LOOKUP_FOLLOW;
 	if (flag & AT_EMPTY_PATH)
 		lookup_flags |= LOOKUP_EMPTY;
+
+	ksu_handle_stat(dfd, filename, flag);
+
 retry:
 	error = user_path_at(dfd, filename, lookup_flags, &path);
 	if (error)
