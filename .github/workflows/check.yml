@@ -1,21 +1,38 @@
-name: Kiểm tra Mã nguồn Kprobe Toàn diện
+name: In Nội dung Mã nguồn Kprobe ARM64
 
 on:
   workflow_dispatch: # Chạy thủ công trên GitHub
 
 jobs:
-  audit-kprobes:
+  print-kprobes-code:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout mã nguồn Kernel
       uses: actions/checkout@v4
 
-    - name: Grep Kết Quả Kprobe ARM64
+    - name: Đọc và In toàn bộ nội dung file mã nguồn
       run: |
-        echo "=== BẮT ĐẦU QUÉT TOÀN BỘ KẾT CẤU KPROBE PHẦN CỨNG ARM64 ==="
+        TARGET_DIR="arch/arm64/kernel/probes"
         
-        # Lệnh grep tổng hợp tất cả các hàm và cấu trúc cốt lõi trong một phần duy nhất
-        grep -rnE "kprobe_handler|kprobe_breakpoint_handler|kprobe_step_handler|arch_prepare_kprobe|arch_arm_kprobe|arch_disarm_kprobe|trampoline|decode_insn|simulate_insn" arch/arm64/kernel/probes/ || echo "Không tìm thấy kết quả nào trùng khớp!"
+        echo "=== BẮT ĐẦU ĐỌC DỮ LIỆU TỪ THƯ MỤC: $TARGET_DIR ==="
         
-        echo "=== KẾT THÚC QUÉT ==="
+        if [ -d "$TARGET_DIR" ]; then
+          # Duyệt qua tất cả các file trong thư mục (bao gồm cả file .c, .h, .S, Makefile)
+          find "$TARGET_DIR" -type f | while read -r file; do
+            echo -e "\n=================================================="
+            echo "📄 FILE: $file"
+            echo "=================================================="
+            
+            # In nội dung của file ra log kèm theo số dòng để bạn dễ quan sát
+            cat -n "$file"
+            
+            echo -e "\n--- KẾT THÚC FILE: $file ---"
+          done
+        else
+          echo "❌ Lỗi: Không tìm thấy thư mục $TARGET_DIR"
+          exit 1
+        fi
+        
+        echo -e "\n=== HOÀN THÀNH IN TOÀN BỘ MÃ NGUỒN KPROBES ARM64 ==="
+ 
