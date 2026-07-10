@@ -1,95 +1,131 @@
-name: Build Kernel Dandelion
+name: Build Redmi 9A KernelSU (Stable)
 
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+  actions: write
+
 jobs:
-  build_kernel:
-    runs-on: ubuntu-22.04
+  build:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Tải mã nguồn Kernel từ Repo
-        uses: actions/checkout@v4
+    - name: Checkout Source
+      uses: actions/checkout@v4
 
-      - name: Cài đặt các công cụ phụ trợ hệ thống & Python 2
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y software-properties-common
-          sudo add-apt-repository -y universe
-          sudo apt-get update
-          sudo apt-get install -y bc build-essential libncurses5-dev libssl-dev xz-utils bzip2 gzip unzip curl git make u-boot-tools libmail-sendmail-perl liblz4-tool lzop python2-minimal
-          sudo ln -sf /usr/bin/python2 /usr/bin/python
+    # ===== 1. CẤU HÌNH CACHE CHO CÁC GÓI APT (HỆ THỐNG) =====
+    - name: Cache APT Packages
+      uses: actions/cache@v4
+      with:
+        path: /var/cache/apt/archives
+        key: apt-cache-${{ runner.os }}-v1
 
-      - name: Thiết lập Bộ nhớ đệm (Cache) cho Toolchains
-        id: cache-toolchains
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/clang
-            ${{ github.workspace }}/gcc64
-            ${{ github.workspace }}/gcc32
-          key: ${{ runner.os }}-toolchains-v3
+    - name: Install Build Essentials
+      run: |
+        sudo apt update
+        sudo apt install -y git bc bison flex libssl-dev make \
+        libc6-dev libncurses5-dev gcc-aarch64-linux-gnu \
+        gcc-arm-linux-gnueabi curl build-essential wget zlib1g-dev \
+        libffi-dev libsqlite3-dev zip
 
-      - name: Tải AOSP Clang và GCC Toolchains (Chỉ tải nếu chưa có trong Cache)
-        if: steps.cache-toolchains.outputs.cache-hit != 'true'
-        run: |
-          echo "Không tìm thấy Cache. Bắt đầu tải Toolchains mới..."
-          
-          echo "--- Tải Clang r383902 từ nguồn Prebuilt ổn định ---"
-          # Sử dụng bản Clang r383902 chuẩn được đóng gói sẵn cho GitHub Actions
-          git clone --depth=1 https://gitlab.com/NghiaPTX/android_prebuilts_clang_host_linux-x86_clang-r383902 $GITHUB_WORKSPACE/clang
+    # ===== 2. TẢI VÀ THIẾT LẬP GOOGLE AOSP CLANG 12 =====
+    - name: Download and Setup AOSP Clang 12
+      run: |
+        mkdir -p $GITHUB_WORKSPACE/clang
+        cd $GITHUB_WORKSPACE/clang
+        echo "[+] Đang tải chính xác Google AOSP Clang r416183b (v12.0.5)..."
+        # Link tải trực tiếp gói Clang r416183b từ nhánh android12-release của Google
+        wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android12-release/clang-r416183b.tar.gz
+        tar -xf clang-r416183b.tar.gz
+        rm -f clang-r416183b.tar.gz
+        echo "[+] Giải nén thành công Clang 12 tại $GITHUB_WORKSPACE/clang"
 
-          echo "--- Tải GCC 64-bit (GCC 4.9) ---"
-          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 $GITHUB_WORKSPACE/gcc64
+    # ===== 3. CẤU HÌNH CACHE CHO PYTHON2 (MÃ NGUỒN & THƯ MỤC CÀI ĐẶT) =====
+    - name: Cache Python2 Core
+      uses: actions/cache@v4
+      with:
+        path: |
+          /opt/python2
+          ${{ github.workspace }}/Python-2.7.18.tgz
+        key: python2-full-cache-v1
 
-          echo "--- Tải GCC 32-bit (GCC 4.9) ---"
-          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 $GITHUB_WORKSPACE/gcc32
-          
-          echo "Tải toàn bộ Toolchains hoàn tất!"
-
-      - name: Tiến hành Biên dịch Kernel bằng Clang
-        run: |
-          export PATH="$GITHUB_WORKSPACE/clang/bin:$GITHUB_WORKSPACE/gcc64/bin:$GITHUB_WORKSPACE/gcc32/bin:$PATH"
-          
-          export ARCH=arm64
-          export SUBARCH=arm64
-          export HEADER_ARCH=arm64
-          
-          export CC=clang
-          export CLANG_TRIPLE=aarch64-linux-gnu-
-          export CROSS_COMPILE=aarch64-linux-android-
-          export CROSS_COMPILE_ARM32=arm-linux-androideabi-
-          
-          mkdir -p out
-          
-          echo "--- Bắt đầu nạp cấu hình dandelion_defconfig ---"
-          make O=out dandelion_defconfig
-          
-          echo "--- Bắt đầu quá trình Compile Kernel ---"
-          make -j$(nproc) O=out \
-                      CC=$CC \
-                      CLANG_TRIPLE=$CLANG_TRIPLE \
-                      CROSS_COMPILE=$CROSS_COMPILE \
-                      CROSS_COMPILE_ARM32=$CROSS_COMPILE_ARM32
-
-      - name: Kiểm tra sản phẩm đầu ra
-        run: |
-          echo "--- Kiểm tra file thành phẩm Kernel ---"
-          mkdir -p thanh_pham
-          
-          if [ -f "out/arch/arm64/boot/Image.gz-dtb" ]; then
-            echo "Biên dịch THÀNH CÔNG! Đã tìm thấy Image.gz-dtb"
-            cp out/arch/arm64/boot/Image.gz-dtb thanh_pham/
-          elif [ -f "out/arch/arm64/boot/Image.gz" ]; then
-            echo "Biên dịch THÀNH CÔNG! Đã tìm thấy Image.gz"
-            cp out/arch/arm64/boot/Image.gz thanh_pham/
-          else
-            echo "LỖI: Không tìm thấy file nhân thành phẩm."
-            exit 1
+    # ===== 4. THIẾT LẬP PYTHON2 =====
+    - name: Setup Python2
+      run: |
+        if [ ! -f /opt/python2/bin/python2.7 ]; then
+          echo "[+] Cache không tồn tại, bắt đầu tải và biên dịch Python2..."
+          if [ ! -f Python-2.7.18.tgz ]; then
+            wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
           fi
+          tar -xf Python-2.7.18.tgz
+          cd Python-2.7.18
+          ./configure --prefix=/opt/python2
+          make -j$(nproc)
+          sudo make install
+          cd ..
+        else
+          echo "[+] Đã tìm thấy Cache! Bỏ qua bước cài đặt Python2."
+        fi
 
-      - name: Lưu file Kernel thành phẩm về máy của bạn
-        uses: actions/upload-artifact@v4
-        with:
-          name: Kernel-Dandelion-KSU
-          path: thanh_pham/
+        # Tạo liên kết ảo để hệ thống nhận diện lệnh `python`
+        sudo ln -sf /opt/python2/bin/python2.7 /usr/bin/python
+        python --version
+
+    # ===== 5. BIÊN DỊCH KERNEL KHỚP TRÌNH BIÊN DỊCH GỐC =====
+    - name: Compile Kernel
+      run: |
+        # Đưa Clang 12 vừa tải lên đầu biến môi trường PATH
+        export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
+        
+        export ARCH=arm64
+        export SUBARCH=arm64
+        
+        # Cấu hình biên dịch chéo bằng Clang 12
+        export CC=clang
+        export CROSS_COMPILE=aarch64-linux-gnu-
+        export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+        export CLANG_TRIPLE=aarch64-linux-gnu-
+        
+        export HOSTCFLAGS="-fcommon"
+        export LOCALVERSION=""
+        mkdir -p out
+
+        make O=out dandelion_defconfig LOCALVERSION=""
+        make O=out olddefconfig LOCALVERSION=""
+
+        # Bắt đầu quá trình build với cấu hình đồng bộ hoàn toàn với hãng
+        make -j$(nproc --all) O=out \
+        CC=clang \
+        CLANG_TRIPLE=aarch64-linux-gnu- \
+        CROSS_COMPILE=aarch64-linux-gnu- \
+        CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+        HOSTCFLAGS="-fcommon" \
+        KCFLAGS="-w" \
+        LOCALVERSION="" \
+        EXTRAVERSION=""
+
+    # ===== 6. ĐÓNG GÓI SẢN PHẨM =====
+    - name: Pack Kernel Artifacts
+      if: success()
+      run: |
+        cd out/arch/arm64/boot/
+        if [ -f Image.gz-dtb ]; then
+          echo "[+] Tìm thấy Image.gz-dtb, tiến hành đóng gói..."
+          zip -r9 Kernel-Redmi9A-KSU.zip Image.gz-dtb
+        elif [ -f Image.gz ]; then
+          echo "[+] Tìm thấy Image.gz, tiến hành đóng gói..."
+          zip -r9 Kernel-Redmi9A-KSU.zip Image.gz
+        else
+          echo "Error: Không tìm thấy file nhân thành phẩm!"
+          exit 1
+        fi
+
+    # ===== 7. UPLOAD SẢN PHẨM LÊN GIAO DIỆN GITHUB =====
+    - name: Upload Kernel Zip
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Kernel-Redmi9A-KSU-Zip
+        path: out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip
