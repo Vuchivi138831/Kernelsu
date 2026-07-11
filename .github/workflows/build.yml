@@ -61,16 +61,20 @@ jobs:
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # Bắt đầu quá trình build kernel với đa nhân
+        # Bắt đầu quá trình build kernel với đa nhân và ép cấu hình Wi-Fi MediaTek
         make -j$(nproc --all) O=out \
-        CC=clang \
-        CLANG_TRIPLE=aarch64-linux-gnu- \
-        CROSS_COMPILE=aarch64-linux-gnu- \
-        CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-        HOSTCFLAGS="-fcommon" \
-        KCFLAGS="-w" \
-        LOCALVERSION="" \
-        EXTRAVERSION=""
+          CC=clang \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+          MTK_PLATFORM=mt6765 \
+          MTK_COMBO_CHIP=MT6632 \
+          WLAN_CHIP_ID=MT6632 \
+          CONFIG_MTK_COMBO_WIFI_HIF=sdio \
+          HOSTCFLAGS="-fcommon" \
+          KCFLAGS="-w" \
+          LOCALVERSION="" \
+          EXTRAVERSION=""
 
     # ===== 4. ĐÓNG GÓI SẢN PHẨM =====
     - name: Pack Kernel Artifacts
