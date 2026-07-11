@@ -1,0 +1,79 @@
+name: Tải và Lưu Trữ Bộ Công Cụ Biên Dịch (Clang & Python2)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  setup-tools:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Tải toàn bộ lịch sử để có thể push ngược lại repo
+
+    # ===== 1. CÀI ĐẶT CÁC GÓI NỀN APT (BẮT BUỘC ĐỂ BIÊN DỊCH PYTHON2) =====
+    - name: Install Build Essentials
+      run: |
+        sudo apt update
+        sudo apt install -y git bc bison flex libssl-dev make \
+        libc6-dev libncurses5-dev gcc-aarch64-linux-gnu \
+        gcc-arm-linux-gnueabi curl build-essential wget zlib1g-dev \
+        libffi-dev libsqlite3-dev zip
+
+    # ===== 2. TẢI GOOGLE AOSP CLANG GỐC (V9.0.3) =====
+    - name: Setup AOSP Clang 9.0.3
+      run: |
+        if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
+          echo "[+] Chưa có Clang trong mã nguồn. Tiến hành tải mới..."
+          mkdir -p $GITHUB_WORKSPACE/toolchains/clang
+          cd $GITHUB_WORKSPACE/toolchains/clang
+          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android10-release/clang-r353983c.tar.gz
+          tar -xf clang-r353983c.tar.gz
+          rm -f clang-r353983c.tar.gz
+          echo "NEED_COMMIT=true" >> $GITHUB_ENV
+        else
+          echo "[+] Đã tìm thấy Clang có sẵn trong mã nguồn! Bỏ qua."
+        fi
+
+    # ===== 3. TẢI VÀ BIÊN DỊCH PYTHON2 =====
+    - name: Setup Python2
+      run: |
+        if [ ! -f "$GITHUB_WORKSPACE/toolchains/python2/bin/python2.7" ]; then
+          echo "[+] Chưa có Python2 trong mã nguồn. Bắt đầu tải và biên dịch..."
+          mkdir -p $GITHUB_WORKSPACE/toolchains/python2
+          
+          cd $GITHUB_WORKSPACE
+          wget -q https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
+          tar -xf Python-2.7.18.tgz
+          cd Python-2.7.18
+          ./configure --prefix=$GITHUB_WORKSPACE/toolchains/python2
+          make -j$(nproc)
+          make install
+          
+          cd $GITHUB_WORKSPACE
+          rm -rf Python-2.7.18 Python-2.7.18.tgz
+          echo "NEED_COMMIT=true" >> $GITHUB_ENV
+        else
+          echo "[+] Đã tìm thấy Python2 có sẵn trong mã nguồn! Bỏ qua."
+        fi
+
+    # ===== 4. ĐẨY THƯ MỤC TOOLCHAINS VỀ LẠI MÃ NGUỒN =====
+    - name: Push Toolchains to Repository
+      if: env.NEED_COMMIT == 'true'
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        
+        # Thêm thư mục chứa Clang và Python2 vào vùng lưu trữ của Git
+        git add toolchains/
+        
+        # Tạo commit và dùng [skip ci] để GitHub không tự kích hoạt lại workflow này một lần nữa
+        git commit -m "chore: tích hợp bộ công cụ Clang và Python2 vào mã nguồn [skip ci]"
+        git push origin HEAD:${{ github.ref }}
+        echo "[+] Đã lưu thành công Clang và Python2 vào thư mục toolchains/ trên repo của bạn!"
