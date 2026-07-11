@@ -65,11 +65,8 @@ jobs:
         FILE_SU="src/su.rs"
         if [ -f "$FILE_SU" ]; then
           echo "🛠️ Dang sua loi bien 'pw' trong $FILE_SU"
-          # Chen mot khai bao bien pw gia lap (Option::None) ngay truoc khoi match pw de khong bi loi thieu scope
           sed -i 's/match pw {/let pw: Option<libc::passwd> = None; match pw {/g' "$FILE_SU"
           echo "✅ Da va xong su.rs!"
-        else
-          echo "⚠️ Khong tim thay src/su.rs cuc bo!"
         fi
 
     - name: Bien dich ksud 32-bit
@@ -82,7 +79,17 @@ jobs:
         TARGET_JNI="drivers/KernelSU-0.9.5/manager/app/src/main/jniLibs"
         rm -rf "$TARGET_JNI/arm64-v8a"
         mkdir -p "$TARGET_JNI/armeabi-v7a"
-        cp drivers/KernelSU-0.9.5/userspace/target/armv7-linux-androideabi/release/ksud "$TARGET_JNI/armeabi-v7a/libksud.so"
+        
+        # Dung find kiem tra va nhat file chong 'No such file or directory'
+        REAL_KSUD=$(find drivers/KernelSU-0.9.5/userspace/target -type f -name "ksud" | grep -E "release" | head -n 1)
+        
+        if [ -n "$REAL_KSUD" ]; then
+          echo "🚚 Dang sao chep thanh pham tu: $REAL_KSUD"
+          cp "$REAL_KSUD" "$TARGET_JNI/armeabi-v7a/libksud.so"
+        else
+          echo "❌ Khong tim thay tep ksud da bien dich xong!"
+          exit 1
+        fi
 
     - name: Cap quyen thu thi cho Gradle
       run: chmod +x drivers/KernelSU-0.9.5/manager/gradlew
