@@ -88,6 +88,7 @@ jobs:
           MTK_PLATFORM=mt6765 \
           MTK_COMBO_CHIP=MT6632 \
           WLAN_CHIP_ID=MT6632 \
+          CONFIG_MTK_COMBO_WIFI_HIF=sdio \
           HOSTCFLAGS="-fcommon" \
           LOCALVERSION="" \
           EXTRAVERSION=""
