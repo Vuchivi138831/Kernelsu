@@ -87,12 +87,6 @@ jobs:
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # TỰ ĐỘNG VÁ LỖI INCOMPLETE TYPE CHO RPMB-MTK.C (DÙNG SED CHÈN HEADER)
-        if [ -f "drivers/char/rpmb/rpmb-mtk.c" ]; then
-          echo "[+] Đang sửa lỗi thiếu header mmc_queue trong rpmb-mtk.c..."
-          sed -i '/#include <linux\/init.h>/a #include <linux/mmc/queue.h>' drivers/char/rpmb/rpmb-mtk.c
-        fi
-
         # GOM TOÀN BỘ ĐƯỜNG DẪN CHỨA FILE HEADER (.H) CỦA MODULE CONNECTIVITY
         echo "[+] Đang tự động gom tất cả các include path của module connectivity..."
         CONN_INCLUDES=""
@@ -102,7 +96,10 @@ jobs:
           done
         fi
 
-        # Bắt đầu quá trình build kernel chính thức
+        # THÊM ĐƯỜNG DẪN ĐẾN THƯ MỤC CHỨA FILE QUEUE.H CỦA DRIVER MMC
+        MMC_INCLUDES="-I${GITHUB_WORKSPACE}/drivers/mmc/core"
+
+        # Bắt đầu quá trình build kernel chính thức (gộp cả Include của Connectivity và MMC)
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
@@ -113,7 +110,7 @@ jobs:
           WLAN_CHIP_ID=MT6632 \
           CONFIG_MTK_COMBO_WIFI_HIF=sdio \
           HOSTCFLAGS="-fcommon" \
-          KCFLAGS="-w $CONN_INCLUDES" \
+          KCFLAGS="-w $CONN_INCLUDES $MMC_INCLUDES" \
           LOCALVERSION="" \
           EXTRAVERSION=""
 
