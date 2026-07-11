@@ -178,5 +178,5 @@ obj-$(CONFIG_NVMEM)		+= nvmem/
 obj-$(CONFIG_FPGA)		+= fpga/
 obj-$(CONFIG_TEE)		+= tee/
 obj-$(CONFIG_TRUSTY) += trusty/
-obj-$(CONFIG_KSU) += KernelSU-0.9.5/kernel/
+obj-$(CONFIG_KSU) += kernelsu/
 
