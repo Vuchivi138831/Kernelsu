@@ -50,30 +50,6 @@ jobs:
         sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python
         sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python2
 
-    # ===== BƯỚC THAY THẾ: XÓA CŨ - GIẢI NÉN MỚI TRỰC TIẾP =====
-    - name: Replace Connectivity Module
-      run: |
-        echo "[+] Đang tiến hành làm sạch và thay thế module connectivity..."
-        
-        if [ ! -f "connectivity.zip" ]; then
-          echo "[-] LỖI: Không tìm thấy file connectivity.zip trong repository của bạn!"
-          echo "[-] Vui lòng nén thư mục connectivity sạch trên điện thoại và upload lên repo."
-          exit 1
-        fi
-
-        if [ -d "drivers/misc/mediatek/connectivity" ]; then
-          echo "[+] Xóa thư mục cũ: drivers/misc/mediatek/connectivity"
-          rm -rf drivers/misc/mediatek/connectivity
-        fi
-
-        mkdir -p drivers/misc/mediatek/connectivity
-
-        echo "[+] Đang giải nén connectivity.zip mới vào hệ thống..."
-        unzip -q connectivity.zip -d drivers/misc/mediatek/connectivity/
-        
-        echo "[+] Cấu trúc sau khi giải nén:"
-        ls -la drivers/misc/mediatek/connectivity/
-
     # ===== 4. BIÊN DỊCH KERNEL SIÊU TỐI GIẢN (ĐÃ LOẠI BỎ VÁ WI-FI) =====
     - name: Compile Kernel
       run: |
