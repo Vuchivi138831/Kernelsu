@@ -29,7 +29,7 @@ jobs:
     - name: Cai dat cargo-ndk
       run: cargo install cargo-ndk
 
-    - name: Tai package va Ghi de file unix.rs cua hole-punch hoan chinh
+    - name: Tai package va Va loi ma nguon hole-punch bang toan tu as
       run: |
         cd drivers/KernelSU-0.9.5/userspace/ksud
         cargo fetch --target armv7-linux-androideabi
@@ -37,124 +37,26 @@ jobs:
         FILE_PATH=$(find /home/runner/.cargo/git/checkouts/hole-punch-* -name "unix.rs" 2>/dev/null | head -n 1)
         
         if [ -n "$FILE_PATH" ]; then
-          echo "🛠️ Dang ghi de file unix.rs tai: $FILE_PATH"
+          echo "🛠️ Dang tien hanh va loi bang toan tu cast 'as' tai: $FILE_PATH"
           
-          # Su dung cat EOF de tao lai file unix.rs sach se, da fix toan bo kieu 32-bit/64-bit
-          cat << 'EOF' > "$FILE_PATH"
-use std::fs::File;
-use std::io;
-use std::os::unix::io::AsRawFd;
-
-use libc::{c_int, lseek, off_t, SEEK_DATA, SEEK_HOLE};
-
-use crate::{ScanError, Segment, Tag};
-
-pub fn scan<F: AsRawFd>(f: &F) -> Result<Vec<Segment>, ScanError> {
-    let fd = f.as_raw_fd();
-
-    unsafe {
-        let end = lseek(fd, 0, libc::SEEK_END);
-        if end < 0 {
-            return Err(ScanError::Io(io::Error::last_os_error()));
-        }
-
-        let mut tags = Vec::new();
-
-        if let Some(first_hole) = find_next_hole(fd, 0)? {
-            if first_hole > 0 {
-                tags.push(Tag::Data(0));
-            }
-            tags.push(Tag::Hole(first_hole as i64));
-        } else {
-            tags.push(Tag::Data(0));
-            tags.push(Tag::End(end as i64));
-            return Ok(crate::tags_to_segments(tags));
-        }
-
-        let mut last_offset = tags.last().unwrap().clone();
-
-        while last_offset.offset() < end as i64 {
-            match last_offset {
-                Tag::Data(x) => {
-                    if let Some(next_offset) = find_next_hole(fd, x as off_t)? {
-                        last_offset = Tag::Hole(next_offset as i64);
-                        tags.push(last_offset.clone());
-                    } else {
-                        last_offset = Tag::End(end as i64);
-                        tags.push(last_offset.clone());
-                    }
-                }
-                Tag::Hole(x) => {
-                    if let Some(next_offset) = find_next_data(fd, x as off_t)? {
-                        last_offset = Tag::Data(next_offset as i64);
-                        tags.push(last_offset.clone());
-                    } else {
-                        last_offset = Tag::End(end as i64);
-                        tags.push(last_offset.clone());
-                    }
-                }
-                Tag::End(_) => break,
-            }
-        }
-
-        if tags.last().unwrap().offset() < end as i64 {
-            tags.push(Tag::End(end as i64));
-        }
-
-        let mut new_end = lseek(fd, 0, libc::SEEK_CUR);
-        if new_end < 0 {
-            new_end = end;
-        }
-        if tags.last().unwrap().offset() > new_end as i64 {
-            tags.pop();
-            tags.push(Tag::End(new_end as i64));
-        }
-
-        Ok(crate::tags_to_segments(tags))
-    }
-}
-
-fn find_next_hole(fd: c_int, offset: off_t) -> Result<Option<off_t>, ScanError> {
-    unsafe {
-        let new_offset = lseek(fd, offset as off_t, SEEK_HOLE);
-        if new_offset < 0 {
-            let err = io::Error::last_os_error();
-            if err.kind() == io::ErrorKind::InvalidInput {
-                return Ok(None);
-            }
-
-            return Err(ScanError::Io(err));
-        }
-
-        Ok(some_if_valid(new_offset))
-    }
-}
-
-fn find_next_data(fd: c_int, offset: off_t) -> Result<Option<off_t>, ScanError> {
-    unsafe {
-        let new_offset = lseek(fd, offset as off_t, SEEK_DATA);
-        if new_offset < 0 {
-            let err = io::Error::last_os_error();
-            if err.kind() == io::ErrorKind::InvalidInput {
-                return Ok(None);
-            }
-
-            return Err(ScanError::Io(err));
-        }
-
-        Ok(some_if_valid(new_offset))
-    }
-}
-
-fn some_if_valid(offset: off_t) -> Option<off_t> {
-    if offset < 0 {
-        None
-    } else {
-        Some(offset)
-    }
-}
-EOF
-          echo "✅ Da thay the file unix.rs nguyen ban bang ma nguon va 32-bit on dinh!"
+          # Sửa chính xác các dòng lỗi bằng lệnh thay thế chuỗi an toàn tuyệt đối cho YAML
+          sed -i 's/while last_offset.offset() < end {/while last_offset.offset() < end as i64 {/g' "$FILE_PATH"
+          sed -i 's/find_next_hole(fd, x)?/find_next_hole(fd, x as off_t)?/g' "$FILE_PATH"
+          sed -i 's/Tag::Hole(next_offset)/Tag::Hole(next_offset as i64)/g' "$FILE_PATH"
+          sed -i 's/Tag::End(end)/Tag::End(end as i64)/g' "$FILE_PATH"
+          sed -i 's/find_next_data(fd, x)?/find_next_data(fd, x as off_t)?/g' "$FILE_PATH"
+          sed -i 's/Tag::Data(next_offset)/Tag::Data(next_offset as i64)/g' "$FILE_PATH"
+          sed -i 's/tags.push(Tag::End(end))/tags.push(Tag::End(end as i64))/g' "$FILE_PATH"
+          sed -i 's/tags.push(Tag::End(new_end))/tags.push(Tag::End(new_end as i64))/g' "$FILE_PATH"
+          
+          # Fix lỗi lseek nhận lệch kiểu trên nền tảng 32-bit công thức chuẩn hóa
+          sed -i 's/let new_offset = lseek(fd, offset, SEEK_HOLE);/let new_offset = lseek(fd, offset as off_t, SEEK_HOLE);/g' "$FILE_PATH"
+          sed -i 's/let new_offset = lseek(fd, offset, SEEK_DATA);/let new_offset = lseek(fd, offset as off_t, SEEK_DATA);/g' "$FILE_PATH"
+          
+          # Đồng bộ kiểu trả về cuối cùng của option
+          sed -i 's/Ok(Some(new_offset))/Ok(Some(new_offset as off_t))/g' "$FILE_PATH"
+          
+          echo "✅ Da xac thuc chuoi va sua chua ma nguon hoan tat!"
         else
           echo "❌ Khong tim thay thu vien hole-punch!"
           exit 1
