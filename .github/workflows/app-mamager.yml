@@ -31,7 +31,8 @@ jobs:
 
     - name: Bien dich ksud 32-bit
       run: |
-        cd userspace/ksud
+        # Di chuyen vao dung thu muc chua ma nguon ksud theo cấu trúc của bạn
+        cd drivers/KernelSU-0.9.5/userspace/ksud
         cargo ndk --target armv7-linux-androideabi --android-platform 21 build --release
 
     - name: Dong bo vao thu muc jniLibs
@@ -39,7 +40,9 @@ jobs:
         TARGET_JNI="drivers/KernelSU-0.9.5/manager/app/src/main/jniLibs"
         rm -rf "$TARGET_JNI/arm64-v8a"
         mkdir -p "$TARGET_JNI/armeabi-v7a"
-        cp userspace/target/armv7-linux-androideabi/release/ksud "$TARGET_JNI/armeabi-v7a/libksud.so"
+        
+        # Copy tu thu muc target cua ksud sang jniLibs cua Manager
+        cp drivers/KernelSU-0.9.5/userspace/target/armv7-linux-androideabi/release/ksud "$TARGET_JNI/armeabi-v7a/libksud.so"
 
     - name: Cap quyen thu thi cho Gradle
       run: chmod +x drivers/KernelSU-0.9.5/manager/gradlew
