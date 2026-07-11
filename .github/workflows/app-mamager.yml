@@ -29,29 +29,15 @@ jobs:
     - name: Cai dat cargo-ndk
       run: cargo install cargo-ndk
 
-    - name: Tai truoc cac package va Va loi kieu du lieu hole-punch
-      run: |
-        cd drivers/KernelSU-0.9.5/userspace/ksud
-        # Chay fetch de Cargo tai cac thu vien phụ thuộc ve thu muc cache cua runner
-        cargo fetch --target armv7-linux-androideabi
-        
-        # Tim file unix.rs cua thu vien hole-punch trong bo nho cache va va loi i32/i64 bang cach ep kieu off_t
-        HOLE_PUNCH_SRC=$(find /home/runner/.cargo/git/checkouts/hole-punch-* -name "unix.rs" 2>/dev/null || true)
-        if [ -n "$HOLE_PUNCH_SRC" ]; then
-          echo "🛠️ Dang va loi cho file: $HOLE_PUNCH_SRC"
-          # Thay the kieu du lieu off_t trong ham thành i64 de khop voi logic cua ho
-          sed -i 's/: off_t/: i64/g' "$HOLE_PUNCH_SRC"
-          sed -i 's/-> Result<Option<off_t>/-> Result<Option<i64>/g' "$HOLE_PUNCH_SRC"
-          echo "✅ Da va loi xong hole-punch!"
-        else
-          echo "⚠️ Khong tim thay file unix.rs cua hole-punch de va."
-        fi
-
     - name: Bien dich ksud 32-bit
       run: |
         cd drivers/KernelSU-0.9.5/userspace/ksud
-        # Thêm co thiet lap offset file 64-bit cho trinh bien dich C/C++ phu tro neu co
+        
+        # Bi quyet o day: Ep Rust va C++ dung chung cau hinh offset file 64-bit de thong nhat kieu off_t thanh i64
+        export RUSTFLAGS="-C cfg=libc_large_file_size_bits=\"64\""
         export CFLAGS="-D_FILE_OFFSET_BITS=64"
+        export CPPFLAGS="-D_FILE_OFFSET_BITS=64"
+        
         cargo ndk --target armv7-linux-androideabi --platform 21 build --release
 
     - name: Dong bo vao thu muc jniLibs
@@ -74,4 +60,3 @@ jobs:
       with:
         name: KernelSU-Manager-32bit
         path: drivers/KernelSU-0.9.5/manager/app/build/outputs/apk/release/*.apk
- 
