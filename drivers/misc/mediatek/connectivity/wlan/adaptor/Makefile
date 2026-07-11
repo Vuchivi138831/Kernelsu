@@ -51,5 +51,6 @@ endif
 ifeq ($(ADAPTOR_OPTS),CONNAC2X2_SOC3_0)
 $(MODULE_NAME)-objs += wifi_pwr_on.o
 endif
+
 ccflags-y += -I$(src)/../../common/common_main/linux/include
 
