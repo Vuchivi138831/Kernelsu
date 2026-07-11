@@ -33,8 +33,8 @@ jobs:
       run: |
         cd drivers/KernelSU-0.9.5/userspace/ksud
         
-        # Bi quyet o day: Ep Rust va C++ dung chung cau hinh offset file 64-bit de thong nhat kieu off_t thanh i64
-        export RUSTFLAGS="-C cfg=libc_large_file_size_bits=\"64\""
+        # Sua lai cu phap RUSTFLAGS tu -C cfg thanh --cfg dung quy dinh cua rustc
+        export RUSTFLAGS="--cfg libc_large_file_size_bits=\"64\""
         export CFLAGS="-D_FILE_OFFSET_BITS=64"
         export CPPFLAGS="-D_FILE_OFFSET_BITS=64"
         
