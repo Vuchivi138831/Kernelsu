@@ -8,57 +8,80 @@ permissions:
   actions: write
 
 jobs:
-  build:
+  # ========================================================
+  # JOB 1: BIÊN DỊCH VÀ LƯU TRỮ PYTHON2 VÀO CACHE TRƯỚC
+  # ========================================================
+  setup_python2:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout Source
-      uses: actions/checkout@v4
-
-    # ===== 1. CÀI ĐẶT CÁC GÓI NỀN APT =====
-    - name: Install Build Essentials
+    - name: Cài đặt công cụ cần thiết để dựng Python
       run: |
         sudo apt update
-        sudo apt install -y git bc bison flex libssl-dev make \
-        libc6-dev libncurses5-dev gcc-aarch64-linux-gnu \
-        gcc-arm-linux-gnueabi curl build-essential wget zlib1g-dev \
-        libffi-dev libsqlite3-dev zip libreadline-dev libbz2-dev unzip
+        sudo apt install -y make build-essential wget zlib1g-dev libffi-dev libsqlite3-dev libreadline-dev libbz2-dev
 
-    # ===== 2. CẤU HÌNH CACHE CHO PYTHON2 =====
-    - name: Cache Python2 Core
+    - name: Kiểm tra Cache Python2
       id: python2-cache
       uses: actions/cache@v4
       with:
         path: /home/runner/python2_install
         key: python2-complete-cache-v3
 
-    # ===== 3. THIẾT LẬP PYTHON2 =====
-    - name: Setup Python2
+    - name: Biên dịch và Lưu Cache trực tiếp (Nếu chưa có)
+      if: steps.python2-cache.outputs.cache-hit != 'true'
       run: |
-        if [ "${{ steps.python2-cache.outputs.cache-hit }}" != 'true' ]; then
-          mkdir -p /home/runner/python2_install
-          cd $GITHUB_WORKSPACE
-          wget -q https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
-          tar -xf Python-2.7.18.tgz
-          cd Python-2.7.18
-          ./configure --prefix=/home/runner/python2_install
-          make -j$(nproc)
-          make install
-          cd $GITHUB_WORKSPACE
-          rm -rf Python-2.7.18 Python-2.7.18.tgz
+        echo "[+] Không tìm thấy Cache, tiến hành build mới Python2..."
+        mkdir -p /home/runner/python2_install
+        wget -q https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
+        tar -xf Python-2.7.18.tgz
+        cd Python-2.7.18
+        ./configure --prefix=/home/runner/python2_install
+        make -j$(nproc)
+        make install
+        cd ..
+        rm -rf Python-2.7.18 Python-2.7.18.tgz
+        echo "[+] Đã build xong Python2 thành công và chuẩn bị đóng Cache!"
+
+  # ========================================================
+  # JOB 2: XÂY DỰNG HẠT NHÂN KERNEL (CHẠY SAU KHI CÓ CACHE)
+  # ========================================================
+  build_kernel:
+    runs-on: ubuntu-latest
+    needs: setup_python2 # Ép buộc phải xong Job 1 mới cho chạy Job này
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
+
+    - name: Install Build Essentials
+      run: |
+        sudo apt update
+        sudo apt install -y git bc bison flex libssl-dev make \
+        libc6-dev libncurses5-dev gcc-aarch64-linux-gnu \
+        gcc-arm-linux-gnueabi curl build-essential wget zip unzip
+
+    - name: Lấy Cache Python2 đã lưu từ Job trước
+      id: load-python2-cache
+      uses: actions/cache@v4
+      with:
+        path: /home/runner/python2_install
+        key: python2-complete-cache-v3
+
+    - name: Cấu hình liên kết Python2 vào hệ thống
+      run: |
+        if [ ! -d "/home/runner/python2_install/bin" ]; then
+          echo "[-] LỖI NGHIÊM TRỌNG: Không lấy được Cache Python2 từ bước trước!"
+          exit 1
         fi
         sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python
         sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python2
+        python --version
 
-    # ===== 4. BIÊN DỊCH KERNEL SIÊU TỐI GIẢN (ĐÃ LOẠI BỎ VÁ WI-FI) =====
-    - name: Compile Kernel
+    - name: Compile Kernel Siêu Tối Giản
       run: |
         if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
           echo "[-] LỖI: Không tìm thấy Clang tại toolchains/clang/!"
           exit 1
         fi
 
-        # Đưa file RPMB về nguyên bản tuyệt đối để hệ thống tự xử lý sạch sẽ
         if [ -f "drivers/char/rpmb/rpmb-mtk.c" ]; then
           git checkout -- drivers/char/rpmb/rpmb-mtk.c
         fi
@@ -79,7 +102,7 @@ jobs:
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # Lệnh make siêu tối giản, chỉ giữ lại cấu hình phần cứng gốc
+        # Lệnh make tối giản của bạn
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
@@ -93,7 +116,6 @@ jobs:
           LOCALVERSION="" \
           EXTRAVERSION=""
 
-    # ===== 5. ĐÓNG GÓI SẢN PHẨM =====
     - name: Pack Kernel Artifacts
       if: success()
       run: |
@@ -105,11 +127,9 @@ jobs:
           exit 1
         fi
 
-    # ===== 6. UPLOAD SẢN PHẨM =====
     - name: Upload Kernel Zip
       if: success()
       uses: actions/upload-artifact@v4
       with:
         name: Kernel-Redmi9A-KSU-Zip
-        path: out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip
- 
+        path: out/arch/arm64/boot/Kernel-su.zip
