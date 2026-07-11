@@ -61,19 +61,16 @@ jobs:
     # ===== 4. BIÊN DỊCH KERNEL (DÙNG CLANG TRONG REPO + PYTHON2 TRONG CACHE) =====
     - name: Compile Kernel
       run: |
-        # Kiểm tra sự tồn tại của Clang trong thư mục toolchains của repo
         if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
           echo "[-] LỖI: Không tìm thấy Clang tại toolchains/clang/ trong repository của bạn!"
           exit 1
         fi
 
-        # Đưa Clang (trong repo) và Python2 (trong cache) lên đầu biến PATH
         export PATH="$GITHUB_WORKSPACE/toolchains/clang/bin:/home/runner/python2_install/bin:$PATH"
         
         export ARCH=arm64
         export SUBARCH=arm64
         
-        # Cấu hình biên dịch chéo
         export CC=clang
         export CROSS_COMPILE=aarch64-linux-gnu-
         export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
@@ -86,7 +83,7 @@ jobs:
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # Tiến hành build kernel và ép chặt thông số Wi-Fi tránh lỗi HIF dòng 141
+        # Bắt đầu quá trình build kernel và sửa lỗi bằng cách ép Include Path cho wmt_exp.h
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
@@ -97,7 +94,7 @@ jobs:
           WLAN_CHIP_ID=MT6632 \
           CONFIG_MTK_COMBO_WIFI_HIF=sdio \
           HOSTCFLAGS="-fcommon" \
-          KCFLAGS="-w" \
+          KCFLAGS="-w -I${GITHUB_WORKSPACE}/drivers/misc/mediatek/connectivity/common/common_main/include/ -I${GITHUB_WORKSPACE}/drivers/misc/mediatek/connectivity/common/include/" \
           LOCALVERSION="" \
           EXTRAVERSION=""
 
