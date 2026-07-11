@@ -1,4 +1,4 @@
-name: Build Redmi 9A
+name: Build Redmi 9A KernelSU (Stable)
 
 on:
   workflow_dispatch:
@@ -61,16 +61,19 @@ jobs:
     # ===== 4. BIÊN DỊCH KERNEL (DÙNG CLANG TRONG REPO + PYTHON2 TRONG CACHE) =====
     - name: Compile Kernel
       run: |
+        # Kiểm tra sự tồn tại của Clang trong thư mục toolchains của repo
         if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
           echo "[-] LỖI: Không tìm thấy Clang tại toolchains/clang/ trong repository của bạn!"
           exit 1
         fi
 
+        # Đưa Clang (trong repo) và Python2 (trong cache) lên đầu biến PATH
         export PATH="$GITHUB_WORKSPACE/toolchains/clang/bin:/home/runner/python2_install/bin:$PATH"
         
         export ARCH=arm64
         export SUBARCH=arm64
         
+        # Cấu hình biên dịch chéo
         export CC=clang
         export CROSS_COMPILE=aarch64-linux-gnu-
         export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
@@ -80,8 +83,15 @@ jobs:
         export LOCALVERSION=""
         mkdir -p out
 
+        # Khởi tạo cấu hình ban đầu
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
+
+        # TỰ ĐỘNG VÁ LỖI INCOMPLETE TYPE CHO RPMB-MTK.C (DÙNG SED CHÈN HEADER)
+        if [ -f "drivers/char/rpmb/rpmb-mtk.c" ]; then
+          echo "[+] Đang sửa lỗi thiếu header mmc_queue trong rpmb-mtk.c..."
+          sed -i '/#include <linux\/init.h>/a #include <linux/mmc/queue.h>' drivers/char/rpmb/rpmb-mtk.c
+        fi
 
         # GOM TOÀN BỘ ĐƯỜNG DẪN CHỨA FILE HEADER (.H) CỦA MODULE CONNECTIVITY
         echo "[+] Đang tự động gom tất cả các include path của module connectivity..."
@@ -92,7 +102,7 @@ jobs:
           done
         fi
 
-        # Tiến hành build kernel với toàn bộ bản đồ dẫn đường của module connectivity
+        # Bắt đầu quá trình build kernel chính thức
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
@@ -106,7 +116,6 @@ jobs:
           KCFLAGS="-w $CONN_INCLUDES" \
           LOCALVERSION="" \
           EXTRAVERSION=""
-
 
     # ===== 5. ĐÓNG GÓI SẢN PHẨM =====
     - name: Pack Kernel Artifacts
@@ -127,4 +136,3 @@ jobs:
       with:
         name: Kernel-Redmi9A-KSU-Zip
         path: out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip
- 
