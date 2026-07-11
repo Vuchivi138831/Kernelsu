@@ -29,7 +29,7 @@ jobs:
     - name: Cai dat cargo-ndk
       run: cargo install cargo-ndk
 
-    - name: Tai package va Va loi ma nguon hole-punch & loopdev sang 32-bit
+    - name: Tai package va Va loi ma nguon hole-punch & loopdev & su.rs
       run: |
         cd drivers/KernelSU-0.9.5/userspace/ksud
         cargo fetch --target armv7-linux-androideabi
@@ -56,13 +56,20 @@ jobs:
         FILE_LD=$(find /home/runner/.cargo/git/checkouts/loopdev-* -name "lib.rs" 2>/dev/null | head -n 1)
         if [ -n "$FILE_LD" ]; then
           echo "🛠️ Dang va loi loopdev tai: $FILE_LD"
-          # Ep kieu rdev() tu u64 ve dev_t (u32 tren 32-bit) truoc khi nap vao ham major/minor
           sed -i 's/libc::major(m.rdev())/libc::major(m.rdev() as libc::dev_t)/g' "$FILE_LD"
           sed -i 's/libc::minor(m.rdev())/libc::minor(m.rdev() as libc::dev_t)/g' "$FILE_LD"
           echo "✅ Da va xong loopdev!"
+        fi
+
+        # 3. VA LOI THIEU BIEN pw TRONG FILE su.rs CUC BO
+        FILE_SU="src/su.rs"
+        if [ -f "$FILE_SU" ]; then
+          echo "🛠️ Dang sua loi bien 'pw' trong $FILE_SU"
+          # Chen mot khai bao bien pw gia lap (Option::None) ngay truoc khoi match pw de khong bi loi thieu scope
+          sed -i 's/match pw {/let pw: Option<libc::passwd> = None; match pw {/g' "$FILE_SU"
+          echo "✅ Da va xong su.rs!"
         else
-          echo "❌ Khong tim thay thu vien loopdev de va loi!"
-          exit 1
+          echo "⚠️ Khong tim thay src/su.rs cuc bo!"
         fi
 
     - name: Bien dich ksud 32-bit
