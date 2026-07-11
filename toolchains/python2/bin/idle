@@ -1,0 +1,5 @@
+#!/home/runner/work/Kernelsu/Kernelsu/toolchains/python2/bin/python2.7
+
+from idlelib.PyShell import main
+if __name__ == '__main__':
+    main()
