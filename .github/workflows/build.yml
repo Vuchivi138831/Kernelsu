@@ -83,7 +83,16 @@ jobs:
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # Bắt đầu quá trình build kernel và sửa lỗi bằng cách ép Include Path cho wmt_exp.h
+        # GOM TOÀN BỘ ĐƯỜNG DẪN CHỨA FILE HEADER (.H) CỦA MODULE CONNECTIVITY
+        echo "[+] Đang tự động gom tất cả các include path của module connectivity..."
+        CONN_INCLUDES=""
+        if [ -d "drivers/misc/mediatek/connectivity" ]; then
+          for dir in $(find drivers/misc/mediatek/connectivity -type f -name "*.h" -exec dirname {} \; | sort -u); do
+            CONN_INCLUDES="$CONN_INCLUDES -I${GITHUB_WORKSPACE}/$dir"
+          done
+        fi
+
+        # Tiến hành build kernel với toàn bộ bản đồ dẫn đường của module connectivity
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
@@ -94,9 +103,10 @@ jobs:
           WLAN_CHIP_ID=MT6632 \
           CONFIG_MTK_COMBO_WIFI_HIF=sdio \
           HOSTCFLAGS="-fcommon" \
-          KCFLAGS="-w -I${GITHUB_WORKSPACE}/drivers/misc/mediatek/connectivity/common/common_main/include/ -I${GITHUB_WORKSPACE}/drivers/misc/mediatek/connectivity/common/include/" \
+          KCFLAGS="-w $CONN_INCLUDES" \
           LOCALVERSION="" \
           EXTRAVERSION=""
+
 
     # ===== 5. ĐÓNG GÓI SẢN PHẨM =====
     - name: Pack Kernel Artifacts
