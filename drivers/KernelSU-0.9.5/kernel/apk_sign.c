@@ -110,15 +110,13 @@ static bool check_block(struct file *fp, u32 *size4, loff_t *pos, u32 *offset,
 
 		bin2hex(hash_str, digest, SHA256_DIGEST_SIZE);
 		pr_info("sha256: %s, expected: %s\n", hash_str, expected_sha256);
-		
+
 		if (strcmp(expected_sha256, hash_str) == 0) {
 			return true;
 		}
 	}
 	return false;
 }
-
-// ĐÃ XÓA: Loại bỏ hoàn toàn cấu trúc zip_entry_header và hàm has_v1_signature_file
 
 static __always_inline bool check_v2_signature(char *path, const char *expected_sha256)
 {
@@ -181,9 +179,8 @@ static __always_inline bool check_v2_signature(char *path, const char *expected_
 		ksu_kernel_read_compat(fp, &id, 0x4, &pos);
 		offset = 4;
 		if (id == 0x7109871au) {
-			// Nhảy thẳng vào xử lý và lấy kết quả băm SHA-256
 			v2_signing_valid = check_block(fp, &size4, &pos, &offset, expected_sha256);
-			break; // Đã tìm thấy và xử lý khối v2, thoát vòng lặp ngay
+			break; 
 		}
 		pos += (size8 - offset);
 	}
@@ -197,20 +194,19 @@ clean:
 int ksu_debug_manager_uid = -1;
 #include "manager.h"
 
-static int set_expected_size(const char *val, const struct kernel_param *kp)
+static int set_manager_uid_debug(const char *val, const struct kernel_param *kp)
 {
-	int rv = param_set_uint(val, kp);
+	int rv = param_set_int(val, kp);
 	ksu_set_manager_uid(ksu_debug_manager_uid);
 	return rv;
 }
 
-static struct kernel_param_ops expected_size_ops = {
-	.set = set_expected_size,
-	.get = param_get_uint,
+static struct kernel_param_ops debug_uid_ops = {
+	.set = set_manager_uid_debug,
+	.get = param_get_int,
 };
 
-module_param_cb(ksu_debug_manager_uid, &expected_size_ops,
-		&ksu_debug_manager_uid, S_IRUSR | S_IWUSR);
+module_param_cb(ksu_debug_manager_uid, &debug_uid_ops, &ksu_debug_manager_uid, S_IRUSR | S_IWUSR);
 #endif
 
 bool is_manager_apk(char *path)
