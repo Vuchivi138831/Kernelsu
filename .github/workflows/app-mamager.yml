@@ -1,4 +1,4 @@
-name: Biên dịch Toàn diện KernelSU Manager + ksud 32-bit
+name: Bien dich KernelSU Manager 32-bit
 
 on:
   workflow_dispatch:
@@ -8,56 +8,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout mã nguồn
+    - name: Checkout ma nguon
       uses: actions/checkout@v4
 
-    - name: Thiết lập Java 21
+    - name: Thiet lap Java 21
       uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
         java-version: '21'
 
-    - name: Thiết lập Android SDK & NDK
+    - name: Thiet lap Android SDK & NDK
       uses: android-actions/setup-android@v3
 
-    - name: Thiết lập Bộ biên dịch Rust & Thêm Target Android 32-bit
+    - name: Thiet lap Bo bien dich Rust
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: stable
         targets: armv7-linux-androideabi
 
-    - name: Cài đặt cargo-ndk (Công cụ giúp Rust biên dịch chéo sang Android NDK)
+    - name: Cai dat cargo-ndk
       run: cargo install cargo-ndk
 
-    - name: 🛠️ Bước 1: Biên dịch mã nguồn ksud sang 32-bit (armeabi-v7a)
+    - name: Bien dich ksud 32-bit
       run: |
         cd userspace/ksud
-        # Biên dịch sang bản tối ưu (Release) dựa trên Android NDK API 21 (hỗ trợ tốt 32-bit)
         cargo ndk --target armv7-linux-androideabi --android-platform 21 build --release
 
-    - name: 🔄 Bước 2: Đồng bộ cấu hình và Di chuyển ksud 32-bit vào APK
+    - name: Dong bo vao thu muc jniLibs
       run: |
-        # Đảm bảo cấu trúc thư mục 32-bit của Manager tồn tại và sạch sẽ
-        cd $GITHUB_WORKSPACE
         TARGET_JNI="drivers/KernelSU-0.9.5/manager/app/src/main/jniLibs"
-        
-        rm -rf $TARGET_JNI/arm64-v8a
-        mkdir -p $TARGET_JNI/armeabi-v7a
-        
-        # Copy file nhị phân ksud 32-bit vừa build xong, đổi tên thành libksud.so
-        cp userspace/target/armv7-linux-androideabi/release/ksud $TARGET_JNI/armeabi-v7a/libksud.so
-        echo "✅ Đã tích hợp ksud 32-bit chính chủ vào thư mục đóng gói APK!"
+        rm -rf "$TARGET_JNI/arm64-v8a"
+        mkdir -p "$TARGET_JNI/armeabi-v7a"
+        cp userspace/target/armv7-linux-androideabi/release/ksud "$TARGET_JNI/armeabi-v7a/libksud.so"
 
-    - name: Cấp quyền thực thi cho Gradle
+    - name: Cap quyen thu thi cho Gradle
       run: chmod +x drivers/KernelSU-0.9.5/manager/gradlew
 
-    - name: 🛠️ Bước 3: Biên dịch đóng gói thành phẩm APK Manager
+    - name: Tien hanh bien dich APK Manager
       run: |
         cd drivers/KernelSU-0.9.5/manager
         ./gradlew assembleRelease --no-daemon
 
-    - name: 📥 Tải thành phẩm KernelSU Manager 32-bit về máy
+    - name: Tai thanh pham APK len Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: KernelSU-Manager-32bit-Perfect
+        name: KernelSU-Manager-32bit
         path: drivers/KernelSU-0.9.5/manager/app/build/outputs/apk/release/*.apk
