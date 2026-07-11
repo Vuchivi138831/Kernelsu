@@ -1,7 +1,11 @@
-name: Biên Dịch Kernel Redmi 9A (Sử dụng Toolchains có sẵn)
+name: Build Redmi 9A KernelSU (Stable)
 
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
 
 jobs:
   build:
@@ -11,62 +15,81 @@ jobs:
     - name: Checkout Source
       uses: actions/checkout@v4
 
-    # ===== 1. CÀI ĐẶT CÁC GÓI NỀN APT (BẮT BUỘC CHO HỆ THỐNG RUNNER) =====
+    # ===== 1. CÀI ĐẶT CÁC GÓI NỀN APT (BỔ SUNG THƯ VIỆN ĐỂ PYTHON2 KHÔNG LỖI) =====
     - name: Install Build Essentials
       run: |
         sudo apt update
         sudo apt install -y git bc bison flex libssl-dev make \
         libc6-dev libncurses5-dev gcc-aarch64-linux-gnu \
         gcc-arm-linux-gnueabi curl build-essential wget zlib1g-dev \
-        libffi-dev libsqlite3-dev zip
+        libffi-dev libsqlite3-dev zip libreadline-dev libbz2-dev
 
-    # ===== 2. LIÊN KẾT PYTHON2 CÓ SẴN TRONG MÃ NGUỒN VÀO HỆ THỐNG =====
-    - name: Link Local Python2
+    # ===== 2. CẤU HÌNH CACHE CHO PYTHON2 (SỬ DỤNG KHÓA VỚI THƯ VIỆN MỚI) =====
+    - name: Cache Python2 Core
+      id: python2-cache
+      uses: actions/cache@v4
+      with:
+        path: /home/runner/python2_install
+        key: python2-complete-cache-v3
+
+    # ===== 3. THIẾT LẬP VÀ BIÊN DỊCH PYTHON2 =====
+    - name: Setup Python2
       run: |
-        if [ -f "$GITHUB_WORKSPACE/toolchains/python2/bin/python2.7" ]; then
-          echo "[+] Tìm thấy Python2 trong thư mục mã nguồn."
-          sudo ln -sf $GITHUB_WORKSPACE/toolchains/python2/bin/python2.7 /usr/bin/python
-          sudo ln -sf $GITHUB_WORKSPACE/toolchains/python2/bin/python2.7 /usr/bin/python2
-          python --version
+        if [ "${{ steps.python2-cache.outputs.cache-hit }}" != 'true' ]; then
+          echo "[+] Không tìm thấy Cache hoặc Cache lỗi, tiến hành biên dịch Python2 mới..."
+          mkdir -p /home/runner/python2_install
+          
+          cd $GITHUB_WORKSPACE
+          wget -q https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
+          tar -xf Python-2.7.18.tgz
+          cd Python-2.7.18
+          ./configure --prefix=/home/runner/python2_install
+          make -j$(nproc)
+          make install
+          
+          cd $GITHUB_WORKSPACE
+          rm -rf Python-2.7.18 Python-2.7.18.tgz
         else
-          echo "[-] LỖI: Không tìm thấy Python2 tại toolchains/python2/. Vui lòng chạy workflow thiết lập trước!"
-          exit 1
+          echo "[+] Đã tìm thấy Bộ nhớ đệm (Cache) hợp lệ! Bỏ qua bước biên dịch Python2."
         fi
 
-    # ===== 3. BIÊN DỊCH KERNEL VỚI CLANG VÀ PYTHON CÓ SẴN TRONG MÃ NGUỒN =====
+        # Tạo liên kết ảo để hệ thống (kể cả script drvgen) nhận diện lệnh python
+        sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python
+        sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python2
+        python --version
+
+    # ===== 4. BIÊN DỊCH KERNEL (DÙNG CLANG TRONG REPO + PYTHON2 TRONG CACHE) =====
     - name: Compile Kernel
       run: |
+        # Kiểm tra sự tồn tại của Clang trong thư mục toolchains của repo
         if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
-          echo "[-] LỖI: Không tìm thấy Clang tại toolchains/clang/. Vui lòng chạy workflow thiết lập trước!"
+          echo "[-] LỖI: Không tìm thấy Clang tại toolchains/clang/ trong repository của bạn!"
           exit 1
         fi
 
-        # Thiết lập biến PATH ưu tiên cả Clang và Python2 local lên hàng đầu
-        export PATH="$GITHUB_WORKSPACE/toolchains/clang/bin:$GITHUB_WORKSPACE/toolchains/python2/bin:$PATH"
+        # Đưa Clang (trong repo) và Python2 (trong cache) lên đầu biến PATH
+        export PATH="$GITHUB_WORKSPACE/toolchains/clang/bin:/home/runner/python2_install/bin:$PATH"
         
         export ARCH=arm64
         export SUBARCH=arm64
         
-        # Cấu hình trình biên dịch chéo toàn cục
+        # Cấu hình biên dịch chéo
         export CC=clang
         export CROSS_COMPILE=aarch64-linux-gnu-
         export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
         export CLANG_TRIPLE=aarch64-linux-gnu-
-        export CLANG_PATH="$GITHUB_WORKSPACE/toolchains/clang"
         
         export HOSTCFLAGS="-fcommon"
         export LOCALVERSION=""
         mkdir -p out
 
-        # Khởi tạo cấu hình defconfig cho thiết bị (dandelion)
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # Bắt đầu quá trình build kernel và ép chặt toàn bộ tham số Clang + Wi-Fi
+        # Tiến hành build kernel và ép chặt thông số Wi-Fi tránh lỗi HIF dòng 141
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
-          CLANG_PATH="$GITHUB_WORKSPACE/toolchains/clang" \
           CROSS_COMPILE=aarch64-linux-gnu- \
           CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
           MTK_PLATFORM=mt6765 \
@@ -78,7 +101,7 @@ jobs:
           LOCALVERSION="" \
           EXTRAVERSION=""
 
-    # ===== 4. ĐÓNG GÓI SẢN PHẨM =====
+    # ===== 5. ĐÓNG GÓI SẢN PHẨM =====
     - name: Pack Kernel Artifacts
       if: success()
       run: |
@@ -90,10 +113,11 @@ jobs:
           exit 1
         fi
 
-    # ===== 5. UPLOAD SẢN PHẨM LÊN GIAO DIỆN GITHUB =====
+    # ===== 6. UPLOAD SẢN PHẨM LÊN GIAO DIỆN GITHUB =====
     - name: Upload Kernel Zip
       if: success()
       uses: actions/upload-artifact@v4
       with:
         name: Kernel-Redmi9A-KSU-Zip
         path: out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip
+ 
