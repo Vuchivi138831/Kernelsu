@@ -15,7 +15,7 @@ jobs:
     - name: Checkout Source
       uses: actions/checkout@v4
 
-    # ===== 1. CÀI ĐẶT CÁC GÓI NỀN APT (BỔ SUNG THƯ VIỆN ĐỂ PYTHON2 KHÔNG LỖI) =====
+    # ===== 1. CÀI ĐẶT CÁC GÓI NỀN APT =====
     - name: Install Build Essentials
       run: |
         sudo apt update
@@ -24,7 +24,7 @@ jobs:
         gcc-arm-linux-gnueabi curl build-essential wget zlib1g-dev \
         libffi-dev libsqlite3-dev zip libreadline-dev libbz2-dev
 
-    # ===== 2. CẤU HÌNH CACHE CHO PYTHON2 (SỬ DỤNG KHÓA VỚI THƯ VIỆN MỚI) =====
+    # ===== 2. CẤU HÌNH CACHE CHO PYTHON2 =====
     - name: Cache Python2 Core
       id: python2-cache
       uses: actions/cache@v4
@@ -36,9 +36,8 @@ jobs:
     - name: Setup Python2
       run: |
         if [ "${{ steps.python2-cache.outputs.cache-hit }}" != 'true' ]; then
-          echo "[+] Không tìm thấy Cache hoặc Cache lỗi, tiến hành biên dịch Python2 mới..."
+          echo "[+] Không tìm thấy Cache, tiến hành biên dịch Python2 mới..."
           mkdir -p /home/runner/python2_install
-          
           cd $GITHUB_WORKSPACE
           wget -q https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
           tar -xf Python-2.7.18.tgz
@@ -46,34 +45,29 @@ jobs:
           ./configure --prefix=/home/runner/python2_install
           make -j$(nproc)
           make install
-          
           cd $GITHUB_WORKSPACE
           rm -rf Python-2.7.18 Python-2.7.18.tgz
-        else
-          echo "[+] Đã tìm thấy Bộ nhớ đệm (Cache) hợp lệ! Bỏ qua bước biên dịch Python2."
         fi
-
-        # Tạo liên kết ảo để hệ thống (kể cả script drvgen) nhận diện lệnh python
         sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python
         sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python2
-        python --version
 
-    # ===== 4. BIÊN DỊCH KERNEL (DÙNG CLANG TRONG REPO + PYTHON2 TRONG CACHE) =====
+    # ===== 4. BIÊN DỊCH KERNEL TỐI GIẢN =====
     - name: Compile Kernel
       run: |
-        # Kiểm tra sự tồn tại của Clang trong thư mục toolchains của repo
         if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
-          echo "[-] LỖI: Không tìm thấy Clang tại toolchains/clang/ trong repository của bạn!"
+          echo "[-] LỖI: Không tìm thấy Clang tại toolchains/clang/!"
           exit 1
         fi
 
-        # Đưa Clang (trong repo) và Python2 (trong cache) lên đầu biến PATH
+        # Đưa file RPMB về nguyên bản tuyệt đối để tránh lỗi cũ
+        if [ -f "drivers/char/rpmb/rpmb-mtk.c" ]; then
+          git checkout -- drivers/char/rpmb/rpmb-mtk.c
+        fi
+
         export PATH="$GITHUB_WORKSPACE/toolchains/clang/bin:/home/runner/python2_install/bin:$PATH"
-        
         export ARCH=arm64
         export SUBARCH=arm64
         
-        # Cấu hình biên dịch chéo
         export CC=clang
         export CROSS_COMPILE=aarch64-linux-gnu-
         export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
@@ -83,23 +77,13 @@ jobs:
         export LOCALVERSION=""
         mkdir -p out
 
-        # Khởi tạo cấu hình ban đầu
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # GOM TOÀN BỘ ĐƯỜNG DẪN CHỨA FILE HEADER (.H) CỦA MODULE CONNECTIVITY
-        echo "[+] Đang tự động gom tất cả các include path của module connectivity..."
-        CONN_INCLUDES=""
-        if [ -d "drivers/misc/mediatek/connectivity" ]; then
-          for dir in $(find drivers/misc/mediatek/connectivity -type f -name "*.h" -exec dirname {} \; | sort -u); do
-            CONN_INCLUDES="$CONN_INCLUDES -I${GITHUB_WORKSPACE}/$dir"
-          done
-        fi
+        # Chỉ nạp đúng 2 đường dẫn chứa header gốc của Wi-Fi để sửa lỗi wmt_exp.h ban đầu
+        WIFI_TARGET_INCLUDES="-I${GITHUB_WORKSPACE}/drivers/misc/mediatek/connectivity/common/common_main/include -I${GITHUB_WORKSPACE}/drivers/misc/mediatek/connectivity/common/include"
 
-        # THÊM ĐƯỜNG DẪN ĐẾN THƯ MỤC CHỨA FILE QUEUE.H CỦA DRIVER MMC
-        MMC_INCLUDES="-I${GITHUB_WORKSPACE}/drivers/mmc/core"
-
-        # Bắt đầu quá trình build kernel chính thức (gộp cả Include của Connectivity và MMC)
+        # Lệnh make tối giản theo yêu cầu của bạn
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
@@ -108,9 +92,7 @@ jobs:
           MTK_PLATFORM=mt6765 \
           MTK_COMBO_CHIP=MT6632 \
           WLAN_CHIP_ID=MT6632 \
-          CONFIG_MTK_COMBO_WIFI_HIF=sdio \
-          HOSTCFLAGS="-fcommon" \
-          KCFLAGS="-w $CONN_INCLUDES $MMC_INCLUDES" \
+          KCFLAGS="-w $WIFI_TARGET_INCLUDES" \
           LOCALVERSION="" \
           EXTRAVERSION=""
 
@@ -126,7 +108,7 @@ jobs:
           exit 1
         fi
 
-    # ===== 6. UPLOAD SẢN PHẨM LÊN GIAO DIỆN GITHUB =====
+    # ===== 6. UPLOAD SẢN PHẨM =====
     - name: Upload Kernel Zip
       if: success()
       uses: actions/upload-artifact@v4
