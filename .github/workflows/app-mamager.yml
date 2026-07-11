@@ -29,36 +29,39 @@ jobs:
     - name: Cai dat cargo-ndk
       run: cargo install cargo-ndk
 
-    - name: Tai package va Va loi ma nguon hole-punch bang toan tu as
+    - name: Tai package va Va loi ma nguon hole-punch & loopdev sang 32-bit
       run: |
         cd drivers/KernelSU-0.9.5/userspace/ksud
         cargo fetch --target armv7-linux-androideabi
         
-        FILE_PATH=$(find /home/runner/.cargo/git/checkouts/hole-punch-* -name "unix.rs" 2>/dev/null | head -n 1)
+        # 1. TIM VA VA LOI THU VIEN HOLE-PUNCH
+        FILE_HP=$(find /home/runner/.cargo/git/checkouts/hole-punch-* -name "unix.rs" 2>/dev/null | head -n 1)
+        if [ -n "$FILE_HP" ]; then
+          echo "🛠️ Dang va loi hole-punch tai: $FILE_HP"
+          sed -i 's/while last_offset.offset() < end {/while last_offset.offset() < end as i64 {/g' "$FILE_HP"
+          sed -i 's/find_next_hole(fd, x)?/find_next_hole(fd, x as off_t)?/g' "$FILE_HP"
+          sed -i 's/Tag::Hole(next_offset)/Tag::Hole(next_offset as i64)/g' "$FILE_HP"
+          sed -i 's/Tag::End(end)/Tag::End(end as i64)/g' "$FILE_HP"
+          sed -i 's/find_next_data(fd, x)?/find_next_data(fd, x as off_t)?/g' "$FILE_HP"
+          sed -i 's/Tag::Data(next_offset)/Tag::Data(next_offset as i64)/g' "$FILE_HP"
+          sed -i 's/tags.push(Tag::End(end))/tags.push(Tag::End(end as i64))/g' "$FILE_HP"
+          sed -i 's/tags.push(Tag::End(new_end))/tags.push(Tag::End(new_end as i64))/g' "$FILE_HP"
+          sed -i 's/let new_offset = lseek(fd, offset, SEEK_HOLE);/let new_offset = lseek(fd, offset as off_t, SEEK_HOLE);/g' "$FILE_HP"
+          sed -i 's/let new_offset = lseek(fd, offset, SEEK_DATA);/let new_offset = lseek(fd, offset as off_t, SEEK_DATA);/g' "$FILE_HP"
+          sed -i 's/Ok(Some(new_offset))/Ok(Some(new_offset as off_t))/g' "$FILE_HP"
+          echo "✅ Da va xong hole-punch!"
+        fi
         
-        if [ -n "$FILE_PATH" ]; then
-          echo "🛠️ Dang tien hanh va loi bang toan tu cast 'as' tai: $FILE_PATH"
-          
-          # Sửa chính xác các dòng lỗi bằng lệnh thay thế chuỗi an toàn tuyệt đối cho YAML
-          sed -i 's/while last_offset.offset() < end {/while last_offset.offset() < end as i64 {/g' "$FILE_PATH"
-          sed -i 's/find_next_hole(fd, x)?/find_next_hole(fd, x as off_t)?/g' "$FILE_PATH"
-          sed -i 's/Tag::Hole(next_offset)/Tag::Hole(next_offset as i64)/g' "$FILE_PATH"
-          sed -i 's/Tag::End(end)/Tag::End(end as i64)/g' "$FILE_PATH"
-          sed -i 's/find_next_data(fd, x)?/find_next_data(fd, x as off_t)?/g' "$FILE_PATH"
-          sed -i 's/Tag::Data(next_offset)/Tag::Data(next_offset as i64)/g' "$FILE_PATH"
-          sed -i 's/tags.push(Tag::End(end))/tags.push(Tag::End(end as i64))/g' "$FILE_PATH"
-          sed -i 's/tags.push(Tag::End(new_end))/tags.push(Tag::End(new_end as i64))/g' "$FILE_PATH"
-          
-          # Fix lỗi lseek nhận lệch kiểu trên nền tảng 32-bit công thức chuẩn hóa
-          sed -i 's/let new_offset = lseek(fd, offset, SEEK_HOLE);/let new_offset = lseek(fd, offset as off_t, SEEK_HOLE);/g' "$FILE_PATH"
-          sed -i 's/let new_offset = lseek(fd, offset, SEEK_DATA);/let new_offset = lseek(fd, offset as off_t, SEEK_DATA);/g' "$FILE_PATH"
-          
-          # Đồng bộ kiểu trả về cuối cùng của option
-          sed -i 's/Ok(Some(new_offset))/Ok(Some(new_offset as off_t))/g' "$FILE_PATH"
-          
-          echo "✅ Da xac thuc chuoi va sua chua ma nguon hoan tat!"
+        # 2. TIM VA VA LOI THU VIEN LOOPDEV
+        FILE_LD=$(find /home/runner/.cargo/git/checkouts/loopdev-* -name "lib.rs" 2>/dev/null | head -n 1)
+        if [ -n "$FILE_LD" ]; then
+          echo "🛠️ Dang va loi loopdev tai: $FILE_LD"
+          # Ep kieu rdev() tu u64 ve dev_t (u32 tren 32-bit) truoc khi nap vao ham major/minor
+          sed -i 's/libc::major(m.rdev())/libc::major(m.rdev() as libc::dev_t)/g' "$FILE_LD"
+          sed -i 's/libc::minor(m.rdev())/libc::minor(m.rdev() as libc::dev_t)/g' "$FILE_LD"
+          echo "✅ Da va xong loopdev!"
         else
-          echo "❌ Khong tim thay thu vien hole-punch!"
+          echo "❌ Khong tim thay thu vien loopdev de va loi!"
           exit 1
         fi
 
