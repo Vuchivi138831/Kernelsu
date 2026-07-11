@@ -22,7 +22,7 @@ jobs:
         sudo apt install -y git bc bison flex libssl-dev make \
         libc6-dev libncurses5-dev gcc-aarch64-linux-gnu \
         gcc-arm-linux-gnueabi curl build-essential wget zlib1g-dev \
-        libffi-dev libsqlite3-dev zip libreadline-dev libbz2-dev
+        libffi-dev libsqlite3-dev zip libreadline-dev libbz2-dev unzip
 
     # ===== 2. CẤU HÌNH CACHE CHO PYTHON2 =====
     - name: Cache Python2 Core
@@ -32,11 +32,10 @@ jobs:
         path: /home/runner/python2_install
         key: python2-complete-cache-v3
 
-    # ===== 3. THIẾT LẬP VÀ BIÊN DỊCH PYTHON2 =====
+    # ===== 3. THIẾT LẬP PYTHON2 =====
     - name: Setup Python2
       run: |
         if [ "${{ steps.python2-cache.outputs.cache-hit }}" != 'true' ]; then
-          echo "[+] Không tìm thấy Cache, tiến hành biên dịch Python2 mới..."
           mkdir -p /home/runner/python2_install
           cd $GITHUB_WORKSPACE
           wget -q https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
@@ -51,7 +50,31 @@ jobs:
         sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python
         sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python2
 
-    # ===== 4. BIÊN DỊCH KERNEL TỐI GIẢN =====
+    # ===== BƯỚC THAY THẾ: XÓA CŨ - GIẢI NÉN MỚI TRỰC TIẾP =====
+    - name: Replace Connectivity Module
+      run: |
+        echo "[+] Đang tiến hành làm sạch và thay thế module connectivity..."
+        
+        if [ ! -f "connectivity.zip" ]; then
+          echo "[-] LỖI: Không tìm thấy file connectivity.zip trong repository của bạn!"
+          echo "[-] Vui lòng nén thư mục connectivity sạch trên điện thoại và upload lên repo."
+          exit 1
+        fi
+
+        if [ -d "drivers/misc/mediatek/connectivity" ]; then
+          echo "[+] Xóa thư mục cũ: drivers/misc/mediatek/connectivity"
+          rm -rf drivers/misc/mediatek/connectivity
+        fi
+
+        mkdir -p drivers/misc/mediatek/connectivity
+
+        echo "[+] Đang giải nén connectivity.zip mới vào hệ thống..."
+        unzip -q connectivity.zip -d drivers/misc/mediatek/connectivity/
+        
+        echo "[+] Cấu trúc sau khi giải nén:"
+        ls -la drivers/misc/mediatek/connectivity/
+
+    # ===== 4. BIÊN DỊCH KERNEL SIÊU TỐI GIẢN (ĐÃ LOẠI BỎ VÁ WI-FI) =====
     - name: Compile Kernel
       run: |
         if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
@@ -59,7 +82,7 @@ jobs:
           exit 1
         fi
 
-        # Đưa file RPMB về nguyên bản tuyệt đối để tránh lỗi cũ
+        # Đưa file RPMB về nguyên bản tuyệt đối để hệ thống tự xử lý sạch sẽ
         if [ -f "drivers/char/rpmb/rpmb-mtk.c" ]; then
           git checkout -- drivers/char/rpmb/rpmb-mtk.c
         fi
@@ -80,10 +103,7 @@ jobs:
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # Chỉ nạp đúng 2 đường dẫn chứa header gốc của Wi-Fi để sửa lỗi wmt_exp.h ban đầu
-        WIFI_TARGET_INCLUDES="-I${GITHUB_WORKSPACE}/drivers/misc/mediatek/connectivity/common/common_main/include -I${GITHUB_WORKSPACE}/drivers/misc/mediatek/connectivity/common/include"
-
-        # Lệnh make tối giản theo yêu cầu của bạn
+        # Lệnh make siêu tối giản, chỉ giữ lại cấu hình phần cứng gốc
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
@@ -92,7 +112,7 @@ jobs:
           MTK_PLATFORM=mt6765 \
           MTK_COMBO_CHIP=MT6632 \
           WLAN_CHIP_ID=MT6632 \
-          KCFLAGS="-w $WIFI_TARGET_INCLUDES" \
+          HOSTCFLAGS="-fcommon" \
           LOCALVERSION="" \
           EXTRAVERSION=""
 
@@ -115,3 +135,4 @@ jobs:
       with:
         name: Kernel-Redmi9A-KSU-Zip
         path: out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip
+ 
