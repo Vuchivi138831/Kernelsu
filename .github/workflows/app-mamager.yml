@@ -29,15 +29,59 @@ jobs:
     - name: Cai dat cargo-ndk
       run: cargo install cargo-ndk
 
+    - name: Tai truoc package va Va loi ma nguon hole-punch
+      run: |
+        cd drivers/KernelSU-0.9.5/userspace/ksud
+        # Tai trước toàn bộ mã nguồn các gói phụ thuộc về máy ảo
+        cargo fetch --target armv7-linux-androideabi
+        
+        # Tim duong dan file unix.rs gay loi cua hole-punch trong cache
+        FILE_PATH=$(find /home/runner/.cargo/git/checkouts/hole-punch-* -name "unix.rs" 2>/dev/null | head -n 1)
+        
+        if [ -n "$FILE_PATH" ]; then
+          echo "🛠️ Dang tien hanh va loi truc tiep tai: $FILE_PATH"
+          
+          # 1. Sua dong 46: end -> end.into()
+          sed -i 's/while last_offset.offset() < end {/while last_offset.offset() < end.into() {/g' "$FILE_PATH"
+          
+          # 2. Sua dong 51: find_next_hole(fd, x) -> find_next_hole(fd, x.try_into().unwrap())
+          sed -i 's/find_next_hole(fd, x)?/find_next_hole(fd, x.try_into().unwrap())?/g' "$FILE_PATH"
+          
+          # 3. Sua dong 52: Tag::Hole(next_offset) -> Tag::Hole(next_offset.into())
+          sed -i 's/Tag::Hole(next_offset)/Tag::Hole(next_offset.into())/g' "$FILE_PATH"
+          
+          # 4. Sua dong 57 & 68: Tag::End(end) -> Tag::End(end.into())
+          sed -i 's/Tag::End(end)/Tag::End(end.into())/g' "$FILE_PATH"
+          
+          # 5. Sua dong 62: find_next_data(fd, x) -> find_next_data(fd, x.try_into().unwrap())
+          sed -i 's/find_next_data(fd, x)?/find_next_data(fd, x.try_into().unwrap())?/g' "$FILE_PATH"
+          
+          # 6. Sua dong 63: Tag::Data(next_offset) -> Tag::Data(next_offset.into())
+          sed -i 's/Tag::Data(next_offset)/Tag::Data(next_offset.into())/g' "$FILE_PATH"
+          
+          # 7. Sua dong 77: Tag::End(end) -> Tag::End(end.into())
+          sed -i 's/tags.push(Tag::End(end))/tags.push(Tag::End(end.into()))/g' "$FILE_PATH"
+          
+          # 8. Sua dong 83: Tag::End(new_end) -> Tag::End(new_end.into())
+          sed -i 's/tags.push(Tag::End(new_end))/tags.push(Tag::End(new_end.into()))/g' "$FILE_PATH"
+          
+          # 9. Sua cac loi phat sinh tai dong 122 va 152 doi voi ham lseek nhan offset i64
+          sed -i 's/let new_offset = lseek(fd, offset, SEEK_HOLE);/let new_offset = lseek(fd, offset.try_into().unwrap(), SEEK_HOLE);/g' "$FILE_PATH"
+          sed -i 's/let new_offset = lseek(fd, offset, SEEK_DATA);/let new_offset = lseek(fd, offset.try_into().unwrap(), SEEK_DATA);/g' "$FILE_PATH"
+          
+          # 10. Sua gia tri tra ve Ok(Some(new_offset)) -> Ok(Some(new_offset.into())) tai dong 144 va 174
+          sed -i 's/Ok(Some(new_offset))/Ok(Some(new_offset.into()))/g' "$FILE_PATH"
+          
+          echo "✅ Chuc mung! File unix.rs da duoc va kieu du lieu sang 32-bit hoan hao!"
+        else
+          echo "❌ Khong tim thay ma nguon hole-punch de va loi!"
+          exit 1
+        fi
+
     - name: Bien dich ksud 32-bit
       run: |
         cd drivers/KernelSU-0.9.5/userspace/ksud
-        
-        # Sua lai cu phap RUSTFLAGS tu -C cfg thanh --cfg dung quy dinh cua rustc
-        export RUSTFLAGS="--cfg libc_large_file_size_bits=\"64\""
-        export CFLAGS="-D_FILE_OFFSET_BITS=64"
-        export CPPFLAGS="-D_FILE_OFFSET_BITS=64"
-        
+        # Bien dich file ma nguon sach sau khi da duoc va loi
         cargo ndk --target armv7-linux-androideabi --platform 21 build --release
 
     - name: Dong bo vao thu muc jniLibs
