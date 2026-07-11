@@ -25,15 +25,15 @@ jobs:
       run: |
         if [ -f "$GITHUB_WORKSPACE/toolchains/python2/bin/python2.7" ]; then
           echo "[+] Tìm thấy Python2 trong thư mục mã nguồn."
-          # Tạo liên kết ảo để hệ thống nhận diện lệnh `python` từ thư mục local của bạn
           sudo ln -sf $GITHUB_WORKSPACE/toolchains/python2/bin/python2.7 /usr/bin/python
+          sudo ln -sf $GITHUB_WORKSPACE/toolchains/python2/bin/python2.7 /usr/bin/python2
           python --version
         else
           echo "[-] LỖI: Không tìm thấy Python2 tại toolchains/python2/. Vui lòng chạy workflow thiết lập trước!"
           exit 1
         fi
 
-    # ===== 3. BIÊN DỊCH KERNEL VỚI CLANG CÓ SẴN TRONG MÃ NGUỒN =====
+    # ===== 3. BIÊN DỊCH KERNEL VỚI CLANG VÀ PYTHON CÓ SẴN TRONG MÃ NGUỒN =====
     - name: Compile Kernel
       run: |
         if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
@@ -41,17 +41,18 @@ jobs:
           exit 1
         fi
 
-        # Đưa Clang từ thư mục toolchains/ local lên đầu biến môi trường PATH
-        export PATH="$GITHUB_WORKSPACE/toolchains/clang/bin:$PATH"
+        # Thiết lập biến PATH ưu tiên cả Clang và Python2 local lên hàng đầu
+        export PATH="$GITHUB_WORKSPACE/toolchains/clang/bin:$GITHUB_WORKSPACE/toolchains/python2/bin:$PATH"
         
         export ARCH=arm64
         export SUBARCH=arm64
         
-        # Cấu hình trình biên dịch chéo
+        # Cấu hình trình biên dịch chéo toàn cục
         export CC=clang
         export CROSS_COMPILE=aarch64-linux-gnu-
         export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
         export CLANG_TRIPLE=aarch64-linux-gnu-
+        export CLANG_PATH="$GITHUB_WORKSPACE/toolchains/clang"
         
         export HOSTCFLAGS="-fcommon"
         export LOCALVERSION=""
@@ -61,10 +62,11 @@ jobs:
         make O=out dandelion_defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # Bắt đầu quá trình build kernel với đa nhân và ép cấu hình Wi-Fi MediaTek
+        # Bắt đầu quá trình build kernel và ép chặt toàn bộ tham số Clang + Wi-Fi
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
+          CLANG_PATH="$GITHUB_WORKSPACE/toolchains/clang" \
           CROSS_COMPILE=aarch64-linux-gnu- \
           CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
           MTK_PLATFORM=mt6765 \
