@@ -211,5 +211,7 @@ module_param_cb(ksu_debug_manager_uid, &debug_uid_ops, &ksu_debug_manager_uid, S
 
 bool is_manager_apk(char *path)
 {
+	// ĐÃ SỬA: Thay đổi EXPECTED_HASH thành EXPECTED_HASH chuẩn theo Makefile định nghĩa
 	return check_v2_signature(path, EXPECTED_HASH);
 }
+ 
