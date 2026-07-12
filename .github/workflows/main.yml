@@ -99,7 +99,7 @@ jobs:
         export LOCALVERSION=""
         mkdir -p out
 
-        make O=out dandelion_defconfig_2 LOCALVERSION=""
+        make O=out defconfig LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
         # Lệnh make tối giản của bạn
