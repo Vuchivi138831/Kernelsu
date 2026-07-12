@@ -128,4 +128,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Kernel-Redmi9A-KSU-Zip
-        path: out/arch/arm64/boot/Kernel-su.zip
+        path: out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip
