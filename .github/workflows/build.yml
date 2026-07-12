@@ -46,7 +46,7 @@ jobs:
   # ========================================================
   build_kernel:
     runs-on: ubuntu-latest
-    needs: setup_python2 # Ép buộc phải xong Job 1 mới cho chạy Job này
+    needs: setup_python2
     steps:
     - name: Checkout Source
       uses: actions/checkout@v4
@@ -96,13 +96,20 @@ jobs:
         export CLANG_TRIPLE=aarch64-linux-gnu-
         
         export HOSTCFLAGS="-fcommon"
-        export LOCALVERSION=""
         mkdir -p out
 
-        make O=out dandelion_defconfig LOCALVERSION=""
-        make O=out olddefconfig LOCALVERSION=""
+        # 1. Tạo file cấu hình thô ban đầu
+        make O=out dandelion_defconfig
 
-        # Lệnh make tối giản của bạn
+        # 2. ÉP BUỘC ghi đè CONFIG_LOCALVERSION và tắt LOCALVERSION_AUTO bằng công cụ của Kernel
+        chmod +x scripts/config
+        ./scripts/config --file out/.config --set-str LOCALVERSION "-perf-gd6489126e4e3"
+        ./scripts/config --file out/.config --disable LOCALVERSION_AUTO
+
+        # 3. Áp dụng đồng bộ lại cấu hình vừa sửa
+        make O=out olddefconfig
+
+        # 4. Tiến hành biên dịch (Sử dụng KBUILD_BUILD_VERSION để khóa hẳn đuôi nếu cần)
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
@@ -115,7 +122,6 @@ jobs:
     - name: Pack Kernel Artifacts
       if: success()
       run: |
-        # Nén file sử dụng đường dẫn đầy đủ từ thư mục gốc của project để tránh nhầm lẫn vị trí
         if [ -f "out/arch/arm64/boot/Image.gz" ]; then
           zip -j out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip out/arch/arm64/boot/Image.gz
         else
@@ -129,4 +135,4 @@ jobs:
       with:
         name: Kernel-Redmi9A-KSU-Zip
         path: out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip
-        if-no-files-found: error # Ép workflow báo lỗi nếu không tìm thấy file, dễ debug hơn tuyển tập im lặng
+        if-no-files-found: error
