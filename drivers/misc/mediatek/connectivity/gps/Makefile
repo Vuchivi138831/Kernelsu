@@ -12,13 +12,7 @@
 ###############################################################################
 # Necessary Check
 
-ifeq ($(AUTOCONF_H),)
-    $(error AUTOCONF_H is not defined)
-endif
-
-ccflags-y += -imacros $(AUTOCONF_H)
-
-ifeq ($(TARGET_BUILD_VARIANT),$(filter $(TARGET_BUILD_VARIANT),userdebug user))
+ifneq ($(CONFIG_MTK_COMBO_ENABLE_DEBUG), y)
     ldflags-y += -s
 endif
 
@@ -58,12 +52,12 @@ ccflags-y += -I$(srctree)/drivers/devfreq
 ###############################################################################
 
 MODULE_NAME := gps_drv
-obj-m += $(MODULE_NAME).o
+obj-y += $(MODULE_NAME).o
 
-WMT_SRC_FOLDER := $(TOP)/vendor/mediatek/kernel_modules/connectivity/common
+WMT_SRC_FOLDER := $(srctree)/drivers/misc/mediatek/connectivity/common
 
 ifeq ($(CONFIG_MTK_COMBO_CHIP),)
-    $(error CONFIG_MTK_COMBO_CHIP not defined)
+    $(warning CONFIG_MTK_COMBO_CHIP not defined)
 endif
 
 ifneq ($(filter "CONSYS_%",$(CONFIG_MTK_COMBO_CHIP)),)
@@ -81,6 +75,8 @@ endif
 
 ifneq ($(filter "CONSYS_6771" "CONSYS_6775" "CONSYS_6779",$(CONFIG_MTK_COMBO_CHIP)),)
         ccflags-y += -DEMI_MPU_PROTECTION_IS_READY=1
+else
+        ccflags-y += -DEMI_MPU_PROTECTION_IS_READY=0
 endif
 
 ccflags-y += -I$(WMT_SRC_FOLDER)/common_main/include

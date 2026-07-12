@@ -10,8 +10,7 @@ ifeq ($(KBUILD_MODPOST_FAIL_ON_WARNINGS),)
     KBUILD_MODPOST_FAIL_ON_WARNINGS=y
 endif
 
-DRIVER_BUILD_DATE=$(shell date +%Y%m%d%H%M%S)
-ccflags-y += -DDRIVER_BUILD_DATE='"$(DRIVER_BUILD_DATE)"'
+ccflags-y += -DDRIVER_BUILD_DATE='"20990101000000"'
 
 # ---------------------------------------------------
 # Compile Options
@@ -116,7 +115,7 @@ else
 endif
 
 # Disable ASSERT() for user load, enable for others
-ifneq ($(TARGET_BUILD_VARIANT),user)
+ifeq ($(CONFIG_MTK_COMBO_ENABLE_DEBUG), y)
     ccflags-y += -DBUILD_QA_DBG=1
 else
     ccflags-y += -DBUILD_QA_DBG=0
@@ -200,9 +199,7 @@ else
     ccflags-y += -DCFG_FLAVOR_FIRMWARE=0
 endif
 
-ifeq ($(MODULE_NAME),)
-	MODULE_NAME := wlan_$(shell echo $(strip $(WLAN_CHIP_ID)) | tr A-Z a-z)_$(CONFIG_MTK_COMBO_WIFI_HIF)
-endif
+MODULE_NAME := wlan_drv_gen4m
 
 ccflags-y += -DDBG=0
 ccflags-y += -I$(src)/os -I$(src)/os/linux/include
