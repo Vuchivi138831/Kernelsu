@@ -26,9 +26,6 @@ jobs:
         
         # Giải nén file zip ngay tại chỗ (tự động sinh ra thư mục connectivity mới)
         unzip -o connectivity.zip
-        
-        # Xóa file zip đi để tránh làm nặng repo của bạn
-        rm -f connectivity.zip
 
     - name: Commit and Push
       run: |
