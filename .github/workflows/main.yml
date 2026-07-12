@@ -1,4 +1,4 @@
-name: Build Redmi 9A
+name: Build Redmi 9A KernelSu
 
 on:
   workflow_dispatch:
@@ -8,81 +8,88 @@ permissions:
   actions: write
 
 jobs:
-  build:
+  # ========================================================
+  # JOB 1: BIÊN DỊCH VÀ LƯU TRỮ PYTHON2 VÀO CACHE TRƯỚC
+  # ========================================================
+  setup_python2:
     runs-on: ubuntu-latest
+    steps:
+    - name: Cài đặt công cụ cần thiết để dựng Python
+      run: |
+        sudo apt update
+        sudo apt install -y make build-essential wget zlib1g-dev libffi-dev libsqlite3-dev libreadline-dev libbz2-dev
 
+    - name: Kiểm tra Cache Python2
+      id: python2-cache
+      uses: actions/cache@v4
+      with:
+        path: /home/runner/python2_install
+        key: python2-complete-cache-v3
+
+    - name: Biên dịch và Lưu Cache trực tiếp (Nếu chưa có)
+      if: steps.python2-cache.outputs.cache-hit != 'true'
+      run: |
+        echo "[+] Không tìm thấy Cache, tiến hành build mới Python2..."
+        mkdir -p /home/runner/python2_install
+        wget -q https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
+        tar -xf Python-2.7.18.tgz
+        cd Python-2.7.18
+        ./configure --prefix=/home/runner/python2_install
+        make -j$(nproc)
+        make install
+        cd ..
+        rm -rf Python-2.7.18 Python-2.7.18.tgz
+        echo "[+] Đã build xong Python2 thành công và chuẩn bị đóng Cache!"
+
+  # ========================================================
+  # JOB 2: XÂY DỰNG HẠT NHÂN KERNEL (CHẠY SAU KHI CÓ CACHE)
+  # ========================================================
+  build_kernel:
+    runs-on: ubuntu-latest
+    needs: setup_python2 # Ép buộc phải xong Job 1 mới cho chạy Job này
     steps:
     - name: Checkout Source
       uses: actions/checkout@v4
-
-    # ===== 1. CẤU HÌNH CACHE CHO CÁC GÓI APT (HỆ THỐNG) =====
-    - name: Cache APT Packages
-      uses: actions/cache@v4
-      with:
-        path: /var/cache/apt/archives
-        key: apt-cache-${{ runner.os }}-v1
 
     - name: Install Build Essentials
       run: |
         sudo apt update
         sudo apt install -y git bc bison flex libssl-dev make \
         libc6-dev libncurses5-dev gcc-aarch64-linux-gnu \
-        gcc-arm-linux-gnueabi curl build-essential wget zlib1g-dev \
-        libffi-dev libsqlite3-dev zip
+        gcc-arm-linux-gnueabi curl build-essential wget zip unzip
 
-    # ===== 2. TẢI VÀ THIẾT LẬP ĐÚNG BẢN GOOGLE AOSP CLANG GỐC (V9.0.3) =====
-    - name: Download and Setup AOSP Clang 9.0.3
-      run: |
-        mkdir -p $GITHUB_WORKSPACE/clang
-        cd $GITHUB_WORKSPACE/clang
-        echo "[+] Đang tải chính xác Google AOSP Clang r353983c (v9.0.3)..."
-        # Link tải trực tiếp gói Clang r353983c từ kho lưu trữ Android của Google
-        wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android10-release/clang-r353983c.tar.gz
-        tar -xf clang-r353983c.tar.gz
-        rm -f clang-r353983c.tar.gz
-        echo "[+] Giải nén thành công Clang 9.0.3 tại $GITHUB_WORKSPACE/clang"
-
-    # ===== 3. CẤU HÌNH CACHE CHO PYTHON2 (MÃ NGUỒN & THƯ MỤC CÀI ĐẶT) =====
-    - name: Cache Python2 Core
+    - name: Lấy Cache Python2 đã lưu từ Job trước
+      id: load-python2-cache
       uses: actions/cache@v4
       with:
-        path: |
-          /opt/python2
-          ${{ github.workspace }}/Python-2.7.18.tgz
-        key: python2-full-cache-v1
+        path: /home/runner/python2_install
+        key: python2-complete-cache-v3
 
-    # ===== 4. THIẾT LẬP PYTHON2 =====
-    - name: Setup Python2
+    - name: Cấu hình liên kết Python2 vào hệ thống
       run: |
-        if [ ! -f /opt/python2/bin/python2.7 ]; then
-          echo "[+] Cache không tồn tại, bắt đầu tải và biên dịch Python2..."
-          if [ ! -f Python-2.7.18.tgz ]; then
-            wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
-          fi
-          tar -xf Python-2.7.18.tgz
-          cd Python-2.7.18
-          ./configure --prefix=/opt/python2
-          make -j$(nproc)
-          sudo make install
-          cd ..
-        else
-          echo "[+] Đã tìm thấy Cache! Bỏ qua bước cài đặt Python2."
+        if [ ! -d "/home/runner/python2_install/bin" ]; then
+          echo "[-] LỖI NGHIÊM TRỌNG: Không lấy được Cache Python2 từ bước trước!"
+          exit 1
         fi
-
-        # Tạo liên kết ảo để hệ thống nhận diện lệnh `python`
-        sudo ln -sf /opt/python2/bin/python2.7 /usr/bin/python
+        sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python
+        sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python2
         python --version
 
-    # ===== 5. BIÊN DỊCH KERNEL KHỚP TRÌNH BIÊN DỊCH GỐC =====
-    - name: Compile Kernel
+    - name: Compile Kernel Siêu Tối Giản
       run: |
-        # Đưa Clang 9.0.3 vừa tải lên đầu biến môi trường PATH
-        export PATH="$GITHUB_WORKSPACE/clang/bin:$PATH"
-        
+        if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
+          echo "[-] LỖI: Không tìm thấy Clang tại toolchains/clang/!"
+          exit 1
+        fi
+
+        if [ -f "drivers/char/rpmb/rpmb-mtk.c" ]; then
+          git checkout -- drivers/char/rpmb/rpmb-mtk.c
+        fi
+
+        export PATH="$GITHUB_WORKSPACE/toolchains/clang/bin:/home/runner/python2_install/bin:$PATH"
         export ARCH=arm64
         export SUBARCH=arm64
         
-        # Cấu hình biên dịch chéo bằng Clang 9
         export CC=clang
         export CROSS_COMPILE=aarch64-linux-gnu-
         export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
@@ -92,21 +99,19 @@ jobs:
         export LOCALVERSION=""
         mkdir -p out
 
-        make O=out dandelion_defconfig LOCALVERSION=""
+        make O=out dandelion_defconfig_2 LOCALVERSION=""
         make O=out olddefconfig LOCALVERSION=""
 
-        # Bắt đầu quá trình build với cấu hình đồng bộ hoàn toàn với hãng
+        # Lệnh make tối giản của bạn
         make -j$(nproc --all) O=out \
-        CC=clang \
-        CLANG_TRIPLE=aarch64-linux-gnu- \
-        CROSS_COMPILE=aarch64-linux-gnu- \
-        CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-        HOSTCFLAGS="-fcommon" \
-        KCFLAGS="-w" \
-        LOCALVERSION="" \
-        EXTRAVERSION=""
+          CC=clang \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+          HOSTCFLAGS="-fcommon" \
+          LOCALVERSION="" \
+          EXTRAVERSION=""
 
-    # ===== 6. ĐÓNG GÓI SẢN PHẨM =====
     - name: Pack Kernel Artifacts
       if: success()
       run: |
@@ -118,11 +123,9 @@ jobs:
           exit 1
         fi
 
-    # ===== 7. UPLOAD SẢN PHẨM LÊN GIAO DIỆN GITHUB =====
     - name: Upload Kernel Zip
       if: success()
       uses: actions/upload-artifact@v4
       with:
         name: Kernel-Redmi9A-KSU-Zip
-        path: out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip
-        
+        path: out/arch/arm64/boot/Kernel-su.zip
