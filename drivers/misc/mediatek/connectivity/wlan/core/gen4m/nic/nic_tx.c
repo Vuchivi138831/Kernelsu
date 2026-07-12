@@ -81,17 +81,6 @@
 #endif
 #endif
 
-#ifndef TX_RING_DATA1_IDX_1
-#define TX_RING_DATA1_IDX_1 999 // Đặt một giá trị giả định lớn để điều kiện so sánh ucPortIdx luôn sai
-#endif
-
-#ifndef halDumpTxdInfo
-static inline void halDumpTxdInfo(void *prAdapter, uint32_t *pucOutputBuf) {
-    // Hàm rỗng, không làm gì cả để tránh lỗi biên dịch trên chip cũ
-}
-#endif
-
-
 /*******************************************************************************
  *                              C O N S T A N T S
  *******************************************************************************

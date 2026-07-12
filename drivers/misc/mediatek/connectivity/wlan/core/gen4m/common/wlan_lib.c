@@ -74,18 +74,6 @@
  *                              C O N S T A N T S
  *******************************************************************************
  */
-#ifndef PLE_GROUP0_SIZE
-#define PLE_GROUP0_SIZE 0
-#endif
-
-#ifndef PLE_GROUP1_SIZE
-#define PLE_GROUP1_SIZE 0
-#endif
-
-#ifndef HIF_MSDU_REPORT_DUMP_TIMEOUT
-#define HIF_MSDU_REPORT_DUMP_TIMEOUT 2000
-#endif
-
 /* 6.1.1.2 Interpretation of priority parameter in MAC service primitives */
 /* Static convert the Priority Parameter/TID(User Priority/TS Identifier) to
  * Traffic Class
