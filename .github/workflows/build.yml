@@ -115,9 +115,9 @@ jobs:
     - name: Pack Kernel Artifacts
       if: success()
       run: |
-        cd out/arch/arm64/boot/
-        if [ -f Image.gz ]; then
-          zip -r9 Kernel-Redmi9A-KSU.zip Image.gz
+        # Nén file sử dụng đường dẫn đầy đủ từ thư mục gốc của project để tránh nhầm lẫn vị trí
+        if [ -f "out/arch/arm64/boot/Image.gz" ]; then
+          zip -j out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip out/arch/arm64/boot/Image.gz
         else
           echo "Error: Image.gz not found!"
           exit 1
@@ -128,4 +128,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Kernel-Redmi9A-KSU-Zip
-        path: out/arch/arm64/boot/Kernel-su.zip
+        path: out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip
+        if-no-files-found: error # Ép workflow báo lỗi nếu không tìm thấy file, dễ debug hơn tuyển tập im lặng
