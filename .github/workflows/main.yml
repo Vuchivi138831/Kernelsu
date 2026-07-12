@@ -96,13 +96,20 @@ jobs:
         export CLANG_TRIPLE=aarch64-linux-gnu-
         
         export HOSTCFLAGS="-fcommon"
-        export LOCALVERSION=""
         mkdir -p out
 
-        make O=out defconfig LOCALVERSION=""
-        make O=out olddefconfig LOCALVERSION=""
+        # 1. Tạo file cấu hình từ defconfig mặc định
+        make O=out defconfig
 
-        # Lệnh make tối giản của bạn
+        # 2. ÉP BUỘC ghi đè chuỗi LOCALVERSION bất kể cấu hình cũ và tắt AUTO_LOCALVERSION
+        chmod +x scripts/config
+        ./scripts/config --file out/.config --set-str LOCALVERSION "-perf-gd6489126e4e3"
+        ./scripts/config --file out/.config --disable LOCALVERSION_AUTO
+
+        # 3. Đồng bộ lại cấu hình vừa chỉnh sửa
+        make O=out olddefconfig
+
+        # 4. Tiến hành biên dịch
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
