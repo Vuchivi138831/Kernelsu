@@ -1,73 +1,46 @@
-name: Unzip and Push Code to Repo
+name: Update Connectivity Driver
 
 on:
-  workflow_dispatch: # Kích hoạt chạy bằng tay từ giao diện Web
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
-  unzip_and_push:
+  update-source:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
-      - name: Kiểm tra và tải Repo gốc về máy ảo
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Xóa triệt để thư mục lỗi cũ trên Repo
-        run: |
-          TARGET_DIR="Xiaomi_Kernel_OpenSource-dandelion-q-oss"
-          
-          # Nếu phát hiện thư mục cũ này đang tồn tại trên web, máy ảo sẽ xóa nó đi luôn
-          if [ -d "$TARGET_DIR" ]; then
-            echo "Phát hiện thư mục cũ lỗi '$TARGET_DIR' trên Repo. Tiến hành xóa..."
-            git rm -r "$TARGET_DIR" 2>/dev/null || rm -rf "$TARGET_DIR"
-            echo "Đã xóa xong thư mục cũ!"
-          else
-            echo "Repo hiện tại sạch sẽ, không có thư mục lỗi cũ."
-          fi
+    - name: Replace connectivity folder
+      run: |
+        # Di chuyển vào thư mục chứa file zip
+        cd drivers/misc/mediatek/
+        
+        # Xóa thư mục connectivity cũ đi trước
+        rm -rf connectivity
+        
+        # Giải nén file zip ngay tại chỗ (tự động sinh ra thư mục connectivity mới)
+        unzip -o connectivity.zip
+        
+        # Xóa file zip đi để tránh làm nặng repo của bạn
+        rm -f connectivity.zip
 
-      - name: Tải file Kernel.zip từ Releases
-        run: |
-          curl -L -o Kernel.zip https://github.com/Vuchivi138831/Kernelsu/releases/download/Kernelsu-dandelion/Kernel.zip
-          echo "Tải về thành công!"
-
-      - name: Giải nén mã nguồn mới
-        run: |
-          unzip -o Kernel.zip
-          rm Kernel.zip
-          echo "Giải nén hoàn tất!"
-
-      - name: Đưa toàn bộ file từ thư mục Xiaomi ra ngoài thư mục gốc Repo
-        run: |
-          TARGET_DIR="Xiaomi_Kernel_OpenSource-dandelion-q-oss"
-          
-          if [ -d "$TARGET_DIR" ]; then
-            echo "Tiến hành chuyển toàn bộ file trong '$TARGET_DIR' ra gốc..."
-            
-            # Di chuyển tất cả file thường và file ẩn ra ngoài gốc (.)
-            mv "$TARGET_DIR"/* . 2>/dev/null || true
-            mv "$TARGET_DIR"/.* . 2>/dev/null || true
-            
-            # Xóa cái vỏ thư mục rỗng đi
-            rm -rf "$TARGET_DIR"
-            echo "Đã sắp xếp cấu trúc thư mục chuẩn!"
-          else
-            echo "Không tìm thấy thư mục '$TARGET_DIR' sau khi giải nén."
-          fi
-
-      - name: Máy ảo tự động cấu hình Git và đẩy code lên Web
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git add .
-          
-          if git diff-index --quiet HEAD --; then
-            echo "Không có file nào mới để cập nhật."
-          else
-            git commit -m "GitHub Actions: Dọn dẹp thư mục lỗi cũ và giải nén chuẩn cấu trúc"
-            # Ép đẩy code lên để dọn sạch hoàn toàn các dữ liệu thừa trên web
-            git push --force origin main
-          fi
-          
+    - name: Commit and Push
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Thêm thư mục mới vào git để chuẩn bị push
+        git add drivers/misc/mediatek/connectivity
+        
+        if git diff-index --quiet HEAD --; then
+          echo "Không có thay đổi nào so với mã nguồn hiện tại."
+        else
+          git commit -m "Automated update: Refreshed connectivity driver from zip"
+          git push origin ${{ github.ref_name }}
+        fi
