@@ -17,8 +17,11 @@ ccflags-y += -I$(objtree)/security/selinux -include $(srctree)/include/uapi/asm-
 
 obj-$(CONFIG_KSU) += kernelsu.o
 
-# ĐÃ SỬA: Ép thẳng phiên bản KernelSU lên 11071 để khớp với Manager tối thiểu
-KSU_VERSION := 11071
+# =========================================================================
+# ĐÃ SỬA MỚI: Ép phiên bản KernelSU lên 32472 để vượt qua mức tối thiểu 32377
+# Giúp khớp hoàn toàn với App Manager bản cộng đồng dành cho máy 32-bit của bạn.
+# =========================================================================
+KSU_VERSION := 32472
 $(info -- KernelSU Custom Test Version: $(KSU_VERSION))
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
 
@@ -45,5 +48,3 @@ endif
 # Các cờ tắt cảnh báo nghiêm ngặt của trình biên dịch
 ccflags-y += -Wno-implicit-function-declaration -Wno-strict-prototypes -Wno-int-conversion -Wno-gcc-compat
 ccflags-y += -Wno-declaration-after-statement -Wno-unused-function
-
-# Vui lòng giữ một dòng trống ở cuối file này!
