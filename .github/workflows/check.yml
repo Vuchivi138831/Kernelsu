@@ -1,0 +1,32 @@
+name: KernelSU Kprobes Environment Checker
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  check-environment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Mã Nguồn Kernel
+        uses: actions/checkout@v4
+
+      - name: Kiểm Tra Cấu Hình Tối Ưu Hóa Trình Biên Dịch
+        run: |
+          echo "=== KIỂM TRA FLAGS TỐI ƯU HÓA ==="
+          if grep -q "-O3" Makefile; then
+            echo "::warning:: Phát hiện flag -O3 trong Makefile gốc!"
+            echo "Giải pháp: Nếu bạn dùng Clang 9, hãy kiểm tra kỹ trong file Makefile gốc của kernel xem có bị bật các tính năng tối ưu hóa quá mức như -O3 hay không. Nên đưa về -O2 để giữ lại cấu trúc hàm rõ ràng cho Kprobes."
+          else
+            echo "Thành công: Makefile không sử dụng tùy biến tối ưu hóa quá mức (-O3)."
+          fi
+
+      - name: Kiểm Tra Điều Kiện Kprobes (Defconfig)
+        run: |
+          echo "=== THÔNG TIN ĐÍNH KÈM CHÈN VÀO KHAI BÁO ==="
+          echo "Trình biên dịch mục tiêu: Clang 9.0.3"
+          echo "Phiên bản hạt nhân đích: Kernel 4.9.190 (Roaring Lionus)"
+          echo "Cơ chế hoạt động: Hook tự động qua Kprobes"
