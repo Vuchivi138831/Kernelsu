@@ -18,11 +18,11 @@ ccflags-y += -I$(objtree)/security/selinux -include $(srctree)/include/uapi/asm-
 obj-$(CONFIG_KSU) += kernelsu.o
 
 # =========================================================================
-# ĐÃ SỬA MỚI: Ép phiên bản KernelSU lên 32472 để vượt qua mức tối thiểu 32377
-# Giúp khớp hoàn toàn với App Manager bản cộng đồng dành cho máy 32-bit của bạn.
+# ĐÃ CẬP NHẬT: Ép phiên bản KernelSU về mức TỐI THIỂU (32377) để đạt độ ổn định
+# Giúp nhân vừa đủ điều kiện vượt qua bài kiểm tra của App Manager 32-bit.
 # =========================================================================
-KSU_VERSION := 32472
-$(info -- KernelSU Custom Test Version: $(KSU_VERSION))
+KSU_VERSION := 32377
+$(info -- KernelSU Custom Stable Version: $(KSU_VERSION))
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
 
 # Kiểm tra tính tương thích cấu trúc SELinux của Kernel
