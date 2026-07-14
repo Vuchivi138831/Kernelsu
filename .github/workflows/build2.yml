@@ -99,7 +99,7 @@ jobs:
         mkdir -p out
 
         # 1. Tạo file cấu hình thô ban đầu
-        make O=out ange_defconfig
+        make O=out angelica_defconfig
 
         # 2. ÉP BUỘC ghi đè CONFIG_LOCALVERSION và tắt LOCALVERSION_AUTO bằng công cụ của Kernel
         chmod +x scripts/config
