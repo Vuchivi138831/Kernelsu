@@ -1,43 +1,65 @@
-name: Update Connectivity Driver
+name: Cập nhật Driver từ File Zip
 
 on:
+  # TẮT TỰ ĐỘNG CHẠY: Chỉ cho phép kích hoạt thủ công bằng nút "Run workflow" trên giao diện web
   workflow_dispatch:
 
+# CẤP QUYỀN GHI: Cho phép GitHub Actions có quyền sửa đổi và push code vào repo
+permissions:
+  contents: write
+
 jobs:
-  update-source:
+  update-camera-drivers:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
-
     steps:
-    - name: Checkout repository
+    # Bước 1: Checkout mã nguồn
+    - name: Checkout mã nguồn
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
-    - name: Replace connectivity folder
+    # Bước 2: Di chuyển đến thư mục và xử lý file zip
+    - name: Xóa thư mục cũ và giải nén file zip mới
       run: |
-        # Di chuyển vào thư mục chứa file zip
         cd drivers/misc/mediatek/
         
-        # Xóa thư mục connectivity cũ đi trước
-        rm -rf connectivity
+        echo "=== BẮT ĐẦU XỬ LÝ DRIVER ==="
         
-        # Giải nén file zip ngay tại chỗ (tự động sinh ra thư mục connectivity mới)
-        unzip -o connectivity.zip
+        # 1. Kiểm tra xem file camera.zip đã được bạn upload lên chưa
+        if [ ! -f "camera.zip" ]; then
+          echo "❌ LỖI: Không tìm thấy file camera.zip ở đường dẫn drivers/misc/mediatek/"
+          exit 1
+        fi
+        
+        # 2. Xóa hai thư mục cũ
+        echo "🧹 Đang xóa thư mục imgsensor và flashlight cũ..."
+        rm -rf imgsensor/
+        rm -rf flashlight/
+        
+        # 3. Giải nén đè và giữ nguyên cấu trúc bên trong file zip
+        echo "📦 Đang giải nén camera.zip..."
+        unzip -o camera.zip
+        
+        echo "✅ Giải nén hoàn tất. Giữ nguyên file camera.zip."
 
-    - name: Commit and Push
+    # Bước 3: Cấu hình tài khoản Git của Bot để làm chứng cứ commit
+    - name: Cấu hình Git
       run: |
         git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+    # Bước 4: Thực hiện Git Commit và Git Push lên lại Repo
+    - name: Git Push thay đổi lên mã nguồn
+      run: |
+        # Thêm các file mới/thay đổi vào vùng chờ
+        git add drivers/misc/mediatek/
         
-        # Thêm thư mục mới vào git để chuẩn bị push
-        git add drivers/misc/mediatek/connectivity
-        
+        # Kiểm tra xem sau khi giải nén có gì khác biệt không, tránh commit rỗng gây lỗi workflow
         if git diff-index --quiet HEAD --; then
-          echo "Không có thay đổi nào so với mã nguồn hiện tại."
+          echo "✨ Không có thay đổi nào mới để commit."
         else
-          git commit -m "Automated update: Refreshed connectivity driver from zip"
-          git push origin ${{ github.ref_name }}
+          git commit -m "🤖 [Bot] Cập nhật driver camera: Thực hiện rmdir và unzip thành công"
+          
+          echo "🚀 Đang thực hiện git push lên mã nguồn..."
+          git push origin HEAD:${{ github.ref }}
+          echo "✅ Đã git push thành công!"
         fi
