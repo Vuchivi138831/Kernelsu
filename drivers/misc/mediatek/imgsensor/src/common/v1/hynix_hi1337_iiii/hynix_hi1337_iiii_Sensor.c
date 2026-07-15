@@ -22,7 +22,7 @@
 #include <linux/atomic.h>
 #include <linux/types.h>
 
-#include "hynix_hi1337_i_Sensor.h"
+#include "hynix_hi1337_iiii_Sensor.h"
 
 #define PFX "hi1337_camera_sensor"
 #define LOG_INF(format, args...)    \
@@ -37,14 +37,14 @@
 extern bool read_hi1337_eeprom( kal_uint16 addr, BYTE *data, kal_uint32 size); 
 extern bool read_eeprom( kal_uint16 addr, BYTE * data, kal_uint32 size);
 extern unsigned char fusion_id_main[48];
-#define hi1337_vendor_id  0x02 //0x2 for truly
+#define HI1337_VENDOR_ID  0x07
  
 
 #define MULTI_WRITE 1
 static DEFINE_SPINLOCK(imgsensor_drv_lock);
 
 static struct imgsensor_info_struct imgsensor_info = {
-	.sensor_id = HYNIX_HI1337_I_SENSOR_ID,
+	.sensor_id = HYNIX_HI1337_IIII_SENSOR_ID,
 
 	.checksum_value = 0xb7c53a42,       //0x6d01485c // Auto Test Mode ����..
 
@@ -292,7 +292,7 @@ static void set_dummy(void)
 
 static kal_uint32 return_sensor_id(void)
 {
-	return ((read_cmos_sensor(0x0716) << 8) | read_cmos_sensor(0x0717));
+	return (((read_cmos_sensor(0x0716) << 8) | read_cmos_sensor(0x0717))+3);
 
 }
 
@@ -2957,31 +2957,31 @@ static void hi1337_fusion_id_read(void)
 {
 	int i;
 	for (i=0; i<9; i++) {
-		fusion_id_main[i] = read_cmos_sensor_hi1337(0x10+i);
+		fusion_id_main[i] = read_cmos_sensor_hi1337(0x24+i);
 		pr_devel("%s %d fusion_id_front[%d]=0x%2x\n",__func__, __LINE__, i, fusion_id_main[i]);
 	}
 }
 static int hi1337_vendor_id_read(int addr)
 {
 	int  flag = 0;
-	flag = read_cmos_sensor_hi1337(0x1);
-    pr_debug("hynix_hi1337_I  read vendor id , form 0x01 is: 0x%x\n", flag);
+	flag = read_cmos_sensor_hi1337(0x01);
+	pr_debug("hynix_hi1337_IIII  read vendor id , form 0x01 is: 0x%x\n", flag);
 	return flag;
 }
 
 static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 {
-    kal_uint8 i = 0;
-    kal_uint8 retry = 2;
-    int  flag = 0;
-    
+	kal_uint8 i = 0;
+	kal_uint8 retry = 2;
+	int  flag = 0;
 	flag = hi1337_vendor_id_read(0x01);
-	if(flag != hi1337_vendor_id){
-        pr_debug("hynix_hi1337_I match vendor id fail, reead vendor id is: 0x%x,expect vendor id is 0x%x \n", flag,hi1337_vendor_id);
-		return ERROR_SENSOR_CONNECT_FAIL;
-	}else{
+    if( flag != HI1337_VENDOR_ID) {
+        pr_debug("hynix_hi1337_iiii match vendor id fail, reead vendor id is: 0x%x,expect vendor id is 0x07 \n", flag);
+        return ERROR_SENSOR_CONNECT_FAIL;
+    }else{
         hi1337_fusion_id_read();
-        }
+    }
+    pr_debug("hynix_hi1337_IIII match vendor id successed, reead vendor id is: 0x%x,expect vendor id is 0x07 \n", flag);
 
 	while (imgsensor_info.i2c_addr_table[i] != 0xff) {
 		spin_lock(&imgsensor_drv_lock);
@@ -2990,7 +2990,7 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 		do {
 			*sensor_id = return_sensor_id();
 			if (*sensor_id == imgsensor_info.sensor_id) {
-			LOG_INF("i2c write id : 0x%x, sensor id: 0x%x\n",
+			pr_debug("i2c write id : 0x%x, sensor id: 0x%x\n",
 			imgsensor.i2c_write_id, *sensor_id);
 
 			}
@@ -3002,7 +3002,7 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 	}
 
 	if (*sensor_id != imgsensor_info.sensor_id) {
-		LOG_INF("Read id fail,sensor id: 0x%x\n", *sensor_id);
+		pr_debug("Read id fail,sensor id: 0x%x\n", *sensor_id);
 		*sensor_id = 0xFFFFFFFF;
 		return ERROR_SENSOR_CONNECT_FAIL;
 	}
@@ -3898,13 +3898,13 @@ static kal_uint32 feature_control(
 			{
 		 		case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
 		 		case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
-		 		//case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
-		 		case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
+				case MSDK_SCENARIO_ID_CUSTOM1:
 					memcpy((void *)PDAFinfo, (void *)&imgsensor_pd_info, sizeof(struct SET_PD_BLOCK_INFO_T));
 					break;
-				case MSDK_SCENARIO_ID_CUSTOM1:
+		 		//case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
 		 		case MSDK_SCENARIO_ID_HIGH_SPEED_VIDEO:
 		 		case MSDK_SCENARIO_ID_SLIM_VIDEO:
+		 		case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
 	 	 		default:
 					break;
 			}
@@ -3927,10 +3927,10 @@ static kal_uint32 feature_control(
 				*(MUINT32 *)(uintptr_t)(*(feature_data+1)) = 0;
 				break;
 			case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
-				*(MUINT32 *)(uintptr_t)(*(feature_data+1)) = 1;
+				*(MUINT32 *)(uintptr_t)(*(feature_data+1)) = 0;
 				break;
 			case MSDK_SCENARIO_ID_CUSTOM1:
-				*(MUINT32 *)(uintptr_t)(*(feature_data+1)) = 0;
+				*(MUINT32 *)(uintptr_t)(*(feature_data+1)) = 1;
 				break;
 			default:
 				*(MUINT32 *)(uintptr_t)(*(feature_data+1)) = 0;
@@ -3964,7 +3964,7 @@ static struct SENSOR_FUNCTION_STRUCT sensor_func = {
 	close
 };
 
-UINT32 HYNIX_HI1337_I_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc)
+UINT32 HYNIX_HI1337_IIII_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc)
 {
 	/* To Do : Check Sensor status here */
 	if (pfFunc != NULL)

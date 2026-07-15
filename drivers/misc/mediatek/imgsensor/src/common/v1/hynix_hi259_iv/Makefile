@@ -11,4 +11,4 @@
 # GNU General Public License for more details.
 #
 
-obj-y += hynix_hi259_iii_Sensor.o
+obj-y += hynix_hi259_iv_Sensor.o

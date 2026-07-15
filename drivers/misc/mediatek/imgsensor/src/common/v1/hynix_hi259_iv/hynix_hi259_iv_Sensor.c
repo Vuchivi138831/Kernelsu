@@ -22,21 +22,21 @@
 #include <linux/atomic.h>
 #include <linux/types.h>
 
-#include "hynix_hi259_ii_Sensor.h"
+#include "hynix_hi259_iv_Sensor.h"
 
 #define PFX "hi259_camera_sensor"
 #define LOG_INF(format, args...)    \
 	pr_devel(PFX "[%s] " format, __func__, ##args)
 
 #define per_frame 1
-#define hi259_vendor_id  0x42 //0x42 for Holitech
-extern unsigned char fusion_id_back2[48];
+#define hi259_vendor_id  0x07
+//extern unsigned char fusion_id_back2[48];
 
 #define MULTI_WRITE 0
 static DEFINE_SPINLOCK(imgsensor_drv_lock);
 
 static struct imgsensor_info_struct imgsensor_info = { 
-	.sensor_id = HYNIX_HI259_II_SENSOR_ID,
+	.sensor_id = HYNIX_HI259_IV_SENSOR_ID,
 	
 	.checksum_value = 0xb7c53a42,       //0x6d01485c // Auto Test Mode ����..
 
@@ -212,7 +212,7 @@ static void set_dummy(void)
 
 static kal_uint32 return_sensor_id(void)
 {
-	return (1 + read_cmos_sensor(0x04));
+	return (3 + read_cmos_sensor(0x04));
 }
 static void set_max_framerate(UINT16 framerate, kal_bool min_framelength_en)
 {
@@ -2139,24 +2139,24 @@ static kal_uint16 read_cmos_sensor_hi259(kal_uint32 addr)
 	kal_uint16 get_byte = 0;
 	char pu_send_cmd[2] = {(char)(addr >> 8), (char)(addr & 0xFF) };
 
-	iReadRegI2C(pu_send_cmd, 2, (u8 *)&get_byte, 1, 0xA0); //eeprom iic addr a0
+	iReadRegI2C(pu_send_cmd, 2, (u8 *)&get_byte, 1, 0xA4); //eeprom iic addr a0
 
 	return get_byte;
 }
-
+/*
 static void hi259_fusion_id_read(void)
 {
 	int i;
 	for (i=0; i<9; i++) {
 		fusion_id_back2[i] =read_cmos_sensor_hi259(0x10+i);
-		pr_devel("%s %d fusion_id_front[%d]=0x%2x\n",__func__, __LINE__, i, fusion_id_back2[i]);
+		pr_debug("%s %d fusion_id_front[%d]=0x%2x\n",__func__, __LINE__, i, fusion_id_back2[i]);
 	}
-}
+}*/
 static int hi259_vendor_id_read(int addr)
 {
 	int  flag = 0;
 	flag = read_cmos_sensor_hi259(addr);
-    pr_debug("hynix_hi259_II  read vendor id , form addr 0x%x is: 0x%x\n",addr,flag);
+    pr_debug("hynix_hi259_IV  read vendor id , form addr 0x%x is: 0x%x\n",addr,flag);
 	return flag;
 }
 
@@ -2170,11 +2170,11 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
     //hi259_fusion_id_read();
     flag = hi259_vendor_id_read(0x01);
     if(flag != hi259_vendor_id){
-        pr_debug("hynix_hi259_II  match vendor id fail, reead vendor id is: 0x%x,expect vendor id is 0x%x \n", flag,hi259_vendor_id);
+        pr_debug("hynix_hi259_IV  match vendor id fail, reead vendor id is: 0x%x,expect vendor id is 0x%x \n", flag,hi259_vendor_id);
         return ERROR_SENSOR_CONNECT_FAIL;
-    }else{
+    }/*else{
 		hi259_fusion_id_read();
-	}
+	}*/
 	while (imgsensor_info.i2c_addr_table[i] != 0xff) {
 		spin_lock(&imgsensor_drv_lock);
 		imgsensor.i2c_write_id = imgsensor_info.i2c_addr_table[i];
@@ -2850,7 +2850,7 @@ static struct SENSOR_FUNCTION_STRUCT sensor_func = {
 	close
 };
 
-UINT32 HYNIX_HI259_II_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc)
+UINT32 HYNIX_HI259_IV_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc)
 {
 	/* To Do : Check Sensor status here */
 	if (pfFunc != NULL)
