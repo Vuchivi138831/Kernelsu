@@ -1,30 +1,46 @@
-name: KernelSU Kprobes Environment Checker
+name: Kiểm Tra Driver Camera
 
-# Cấu hình chỉ chạy khi người dùng nhấn nút thủ công trên GitHub (Actions -> Run workflow)
 on:
+  # Chạy mỗi khi bạn push code lên branch main/master
+  push:
+    branches: [ "main", "master" ]
+  # Chạy khi bạn tạo Pull Request
+  pull_request:
+    branches: [ "main", "master" ]
+  # Cho phép bạn bấm nút chạy thủ công trên giao diện GitHub
   workflow_dispatch:
 
 jobs:
-  check-environment:
+  check-sensor:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Mã Nguồn Kernel
-        uses: actions/checkout@v4
+    # Bước 1: Clone mã nguồn kernel của bạn về máy ảo
+    - name: Checkout mã nguồn
+      uses: actions/checkout@v4
 
-      - name: Kiểm Tra Cấu Hình Tối Ưu Hóa Trình Biên Dịch
-        run: |
-          echo "=== KIỂM TRA FLAGS TỐI ƯU HÓA ==="
-          # Sử dụng flag -e để tránh lỗi biến -O3 thành tham số hệ thống của grep
-          if grep -q -e "-O3" Makefile; then
-            echo "::warning:: Phát hiện flag -O3 trong Makefile gốc!"
-            echo "Giải pháp: Nếu bạn dùng Clang 9, hãy kiểm tra kỹ trong file Makefile gốc của kernel xem có bị bật các tính năng tối ưu hóa quá mức như -O3 hay không. Nên đưa về -O2 để giữ lại cấu trúc hàm rõ ràng cho Kprobes."
+    # Bước 2: Chạy lệnh tìm kiếm driver
+    - name: Quét tìm kiếm cảm biến Hynix Hi1337
+      run: |
+        echo "=== BẮT ĐẦU QUÉT MÃ NGUỒN ==="
+        
+        # Tạo một file tạm để lưu kết quả quét
+        grep -rnw "hynix_hi1337" . > grep_result.txt || true
+        
+        # Kiểm tra xem có tìm thấy kết quả nào không
+        if [ -s grep_result.txt ]; then
+          echo "✅ Tìm thấy các dòng chứa cấu hình hynix_hi1337:"
+          cat grep_result.txt
+          
+          # Kiểm tra riêng xem có biến thể _iiii của bạn không
+          if grep -q "hynix_hi1337_iiii" grep_result.txt; then
+            echo "🎉 TUYỆT VỜI: Đã tìm thấy driver biến thể _iiii cho máy của bạn!"
           else
-            echo "Thành công: Makefile không sử dụng tùy biến tối ưu hóa quá mức (-O3)."
+            echo "❌ CẢNH BÁO: Không tìm thấy biến thể _iiii. Camera có thể không hoạt động!"
+            # Bỏ dấu '#' ở dòng dưới nếu bạn muốn workflow THẤT BẠI LUÔN để dừng biên dịch:
+            # exit 1
           fi
-
-      - name: Kiểm Tra Điều Kiện Kprobes (Defconfig)
-        run: |
-          echo "=== THÔNG TIN ĐÍNH KÈM CHÈN VÀO KHAI BÁO ==="
-          echo "Trình biên dịch mục tiêu: Clang 9.0.3"
-          echo "Phiên bản hạt nhân đích: Kernel 4.9.190 (Roaring Lionus)"
-          echo "Cơ chế hoạt động: Hook tự động qua Kprobes"
+        else
+          echo "❌ LỖI RỒI: Hoàn toàn không tìm thấy bất kỳ từ khóa 'hynix_hi1337' nào trong toàn bộ mã nguồn!"
+          exit 1
+        fi
