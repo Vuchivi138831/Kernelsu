@@ -42,3 +42,4 @@ subdir-ccflags-y += $(CUSTOM_KERNEL_FLAGS)
 
 obj-y += $(subst ",,$(CONFIG_MTK_PLATFORM_SENSOR))/
 
+obj-y += common/v1/hi556_mipi_raw/
