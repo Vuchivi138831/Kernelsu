@@ -1,4 +1,4 @@
-name: Build Redmi 9A KernelSu
+Name: Build Redmi 9A KernelSu
 
 on:
   workflow_dispatch:
@@ -107,15 +107,27 @@ jobs:
           exit 1
         fi
 
+        # =========================================================================
+        # CHÈN THÊM CẤU HÌNH TƯƠNG THÍCH 32-BIT VÀO FILE .CONFIG
+        # =========================================================================
+        # Chèn CONFIG_COMPAT=y và xóa các dòng vô hiệu hóa nó (nếu có)
+        sed -i '/CONFIG_COMPAT/d' out/.config
+        echo "CONFIG_COMPAT=y" >> out/.config
+        echo "CONFIG_SYSVIPC_COMPAT=y" >> out/.config
+        echo "[+] Đã chèn thành công cấu hình tương thích 32-bit (CONFIG_COMPAT)!"
+        # =========================================================================
+
         # 2. Đồng bộ lại cấu hình vừa nạp
         make O=out olddefconfig
 
         # 3. Tiến hành biên dịch và ĐẶT TÊN BIÊN DỊCH (LOCALVERSION)
+        # Lưu ý: Thêm CROSS_COMPILE_COMPAT vào lệnh make để kernel build được vDSO 32-bit tối ưu
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
           CROSS_COMPILE=aarch64-linux-gnu- \
           CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+          CROSS_COMPILE_COMPAT=arm-linux-gnueabi- \
           HOSTCFLAGS="-fcommon" \
           LOCALVERSION="-KSU-Redmi9A" \
           EXTRAVERSION=""
