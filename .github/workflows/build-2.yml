@@ -22,9 +22,7 @@ jobs:
 
       - name: Download GCC Toolchains (Trợ thủ cho Clang)
         run: |
-          # Tải GCC 64-bit để hỗ trợ Link/Assemble cho ARM64
           git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b ndk-release-r21 --depth=1 $GITHUB_WORKSPACE/gcc64
-          # Tải GCC 32-bit để hỗ trợ tương thích ngược (nếu kernel yêu cầu)
           git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 -b ndk-release-r21 --depth=1 $GITHUB_WORKSPACE/gcc32
 
       - name: Prepare Config
@@ -42,7 +40,8 @@ jobs:
           # Thêm cả Proton Clang và 2 bộ GCC vào đường dẫn hệ thống PATH
           export PATH="$GITHUB_WORKSPACE/Clang/bin:$GITHUB_WORKSPACE/gcc64/bin:$GITHUB_WORKSPACE/gcc32/bin:$PATH"
           
-          # Cấu hình đầy đủ các biến môi trường để Proton Clang gọi GCC khi cần làm bài test
+          # Cấu hình đầy đủ các biến môi trường 
+          # Bổ sung HOSTCFLAGS và HOSTLDFLAGS với cờ -fcommon để sửa lỗi "multiple definition of yylloc"
           MAKE_FLAGS="O=out ARCH=arm64 \
             CC=clang \
             CLANG_TRIPLE=aarch64-linux-gnu- \
@@ -52,9 +51,11 @@ jobs:
             NM=llvm-nm \
             OBJCOPY=llvm-objcopy \
             OBJDUMP=llvm-objdump \
-            STRIP=llvm-strip"
+            STRIP=llvm-strip \
+            HOSTCFLAGS=-fcommon \
+            HOSTLDFLAGS=-fcommon"
           
-          # Bước 1: Đồng bộ hóa cấu hình cũ (Bài test lúc này sẽ chạy đúng và tự động vượt qua)
+          # Bước 1: Đồng bộ hóa cấu hình cũ
           make $MAKE_FLAGS olddefconfig
             
           # Bước 2: Tiến hành biên dịch ra file Image
