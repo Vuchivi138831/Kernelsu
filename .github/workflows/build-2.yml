@@ -1,4 +1,4 @@
-name: Biên dịch KernelSU
+name: Build Kernel 4.9 with KernelSU
 
 on:
   workflow_dispatch:
@@ -20,29 +20,26 @@ jobs:
           sudo apt-get install -y python2
           sudo ln -sf /usr/bin/python2 /usr/bin/python
 
-      - name: Setup Proton Clang 13
+      - name: Prepare Config
         run: |
-          git clone https://github.com/kdrag0n/proton-clang.git --depth=1 $GITHUB_WORKSPACE/proton-clang
-
-      - name: Locate and Prepare Config
-        run: |
-          # Tìm file config (không bắt đầu bằng dấu chấm) ngay tại thư mục gốc
-          CONFIG_FILE=$(find . -maxdepth 1 -type f ! -name ".*" -name "*config*" | head -n 1)
-          if [ -z "$CONFIG_FILE" ]; then
-            echo "ERROR: Could not find a config file at the root directory!"
+          # Kiểm tra file dandelion_config ở thư mục gốc
+          if [ ! -f "dandelion_config" ]; then
+            echo "ERROR: Could not find 'dandelion_config' at the root directory!"
             exit 1
           fi
-          echo "Found config file: $CONFIG_FILE"
+          echo "Found config file: dandelion_config"
           
-          # Sao chép nó thành .config để tiến hành build (giữ nguyên, không chỉnh sửa cấu hình)
-          cp "$CONFIG_FILE" .config
+          # Tạo thư mục out và sao chép cấu hình thành .config
+          mkdir -p out
+          cp dandelion_config out/.config
 
       - name: Compile Kernel
         run: |
-          export PATH="$GITHUB_WORKSPACE/proton-clang/bin:$PATH"
+          # Trỏ PATH vào thư mục Clang đã được push sẵn trong mã nguồn của bạn
+          export PATH="$GITHUB_WORKSPACE/Clang/bin:$PATH"
           
-          # Cấu hình môi trường cho Proton Clang (chỉ dùng Clang làm trình biên dịch và lắp ráp)
-          make -j$(nproc --all) O=out ARCH=arm64 \
+          # Bước 1: Đồng bộ hóa cấu hình cũ từ file config của bạn
+          make O=out ARCH=arm64 \
             CC=clang \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
@@ -53,6 +50,7 @@ jobs:
             STRIP=llvm-strip \
             olddefconfig
             
+          # Bước 2: Tiến hành biên dịch (Chỉ định rõ đích đến là 'Image')
           make -j$(nproc --all) O=out ARCH=arm64 \
             CC=clang \
             CROSS_COMPILE=aarch64-linux-gnu- \
@@ -61,11 +59,12 @@ jobs:
             NM=llvm-nm \
             OBJCOPY=llvm-objcopy \
             OBJDUMP=llvm-objdump \
-            STRIP=llvm-strip
+            STRIP=llvm-strip \
+            Image
 
       - name: Compress Image to Gzip
         run: |
-          # Kiểm tra xem file Image nằm ở đâu và tiến hành nén gzip nếu nó chưa được nén
+          # Kiểm tra xem file Image nằm ở đâu và tiến hành nén gzip
           if [ -f out/arch/arm64/boot/Image ]; then
             gzip -c out/arch/arm64/boot/Image > out/arch/arm64/boot/Image.gz
             echo "Successfully compressed Image to Image.gz"
