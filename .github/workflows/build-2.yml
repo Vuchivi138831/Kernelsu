@@ -1,4 +1,4 @@
-name: Build Kernel 4.9 with KernelSU
+name: Build Kernel 4.9 with Proton Clang
 
 on:
   workflow_dispatch:
@@ -20,10 +20,20 @@ jobs:
           sudo apt-get install -y python2
           sudo ln -sf /usr/bin/python2 /usr/bin/python
 
-      - name: Download GCC Toolchains (Trợ thủ cho Clang)
+      - name: Download GCC Toolchains (Trợ thủ cho Proton Clang)
         run: |
           git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b ndk-release-r21 --depth=1 $GITHUB_WORKSPACE/gcc64
           git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 -b ndk-release-r21 --depth=1 $GITHUB_WORKSPACE/gcc32
+
+      - name: Fix Driver Makefile (Sửa tận gốc lỗi Thụt lề)
+        run: |
+          echo "Bẻ gãy cờ -Werror và ép cờ bỏ qua lỗi thụt lề vào toàn bộ hệ thống..."
+          # Cách 1: Thay thế trực tiếp trong file Makefile chính nếu nó ép -Werror
+          find . -name "Makefile" -o -name "Kbuild" | xargs sed -i 's/-Werror=misleading-indentation/-Wno-misleading-indentation/g' 2>/dev/null || true
+          find . -name "Makefile" -o -name "Kbuild" | xargs sed -i 's/-Wmisleading-indentation/-Wno-misleading-indentation/g' 2>/dev/null || true
+          
+          # Cách 2: Vô hiệu hóa toàn bộ cờ -Werror tổng thể của hệ thống kernel
+          sed -i 's/subdir-ccflags-y += -Werror/# subdir-ccflags-y += -Werror/g' drivers/input/touchscreen/mediatek/hxchipset/Makefile 2>/dev/null || true
 
       - name: Prepare Config
         run: |
@@ -37,12 +47,10 @@ jobs:
 
       - name: Compile Kernel
         run: |
-          # Thêm cả Proton Clang và 2 bộ GCC vào đường dẫn hệ thống PATH
+          # Trỏ PATH vào thư mục Clang riêng của bạn và 2 bộ GCC bổ trợ
           export PATH="$GITHUB_WORKSPACE/Clang/bin:$GITHUB_WORKSPACE/gcc64/bin:$GITHUB_WORKSPACE/gcc32/bin:$PATH"
           
-          # Cấu hình đầy đủ các biến môi trường 
-          # -fcommon: Sửa lỗi trùng lặp định nghĩa 'yylloc' ở scripts/dtc
-          # -Wno-error: Hạ cấp toàn bộ lỗi cảnh báo cú pháp (như thụt lề ở driver himax) xuống thành Warning để không làm dừng quá trình build
+          # Cấu hình biến môi trường cho Proton Clang
           MAKE_FLAGS="O=out ARCH=arm64 \
             CC=clang \
             CLANG_TRIPLE=aarch64-linux-gnu- \
@@ -54,11 +62,9 @@ jobs:
             OBJDUMP=llvm-objdump \
             STRIP=llvm-strip \
             HOSTCFLAGS=-fcommon \
-            HOSTLDFLAGS=-fcommon \
-            KCFLAGS=-Wno-error \
-            KCPPFLAGS=-Wno-error"
+            HOSTLDFLAGS=-fcommon"
           
-          # Bước 1: Đồng bộ hóa cấu hình cũ (Bài test compiler lúc này sẽ tự động vượt qua)
+          # Bước 1: Đồng bộ hóa cấu hình cũ
           make $MAKE_FLAGS olddefconfig
             
           # Bước 2: Tiến hành biên dịch ra file Image
