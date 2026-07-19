@@ -25,15 +25,19 @@ jobs:
           git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b ndk-release-r21 --depth=1 $GITHUB_WORKSPACE/gcc64
           git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 -b ndk-release-r21 --depth=1 $GITHUB_WORKSPACE/gcc32
 
-      - name: Fix Driver Makefile (Sửa tận gốc lỗi Thụt lề)
+      - name: Patch Driver Source Code (Ép tắt cảnh báo thụt lề)
         run: |
-          echo "Bẻ gãy cờ -Werror và ép cờ bỏ qua lỗi thụt lề vào toàn bộ hệ thống..."
-          # Cách 1: Thay thế trực tiếp trong file Makefile chính nếu nó ép -Werror
-          find . -name "Makefile" -o -name "Kbuild" | xargs sed -i 's/-Werror=misleading-indentation/-Wno-misleading-indentation/g' 2>/dev/null || true
-          find . -name "Makefile" -o -name "Kbuild" | xargs sed -i 's/-Wmisleading-indentation/-Wno-misleading-indentation/g' 2>/dev/null || true
+          echo "Tiến hành can thiệp trực tiếp vào file nguồn driver..."
+          TARGET_FILE="drivers/input/touchscreen/mediatek/hxchipset/himax_debug.c"
           
-          # Cách 2: Vô hiệu hóa toàn bộ cờ -Werror tổng thể của hệ thống kernel
-          sed -i 's/subdir-ccflags-y += -Werror/# subdir-ccflags-y += -Werror/g' drivers/input/touchscreen/mediatek/hxchipset/Makefile 2>/dev/null || true
+          if [ -f "$TARGET_FILE" ]; then
+            # Chèn lệnh chỉ thị pragma vào dòng đầu tiên để ép Proton Clang bỏ qua bộ quét misleading-indentation
+            sed -i '1s/^/#pragma GCC diagnostic ignored "-Wmisleading-indentation"\n/' "$TARGET_FILE"
+            echo "Successfully patched $TARGET_FILE"
+          else
+            echo "ERROR: Không tìm thấy file $TARGET_FILE để sửa!"
+            exit 1
+          fi
 
       - name: Prepare Config
         run: |
@@ -50,7 +54,7 @@ jobs:
           # Trỏ PATH vào thư mục Clang riêng của bạn và 2 bộ GCC bổ trợ
           export PATH="$GITHUB_WORKSPACE/Clang/bin:$GITHUB_WORKSPACE/gcc64/bin:$GITHUB_WORKSPACE/gcc32/bin:$PATH"
           
-          # Cấu hình biến môi trường cho Proton Clang
+          # Cấu hình biến môi trường chuẩn cho Proton Clang
           MAKE_FLAGS="O=out ARCH=arm64 \
             CC=clang \
             CLANG_TRIPLE=aarch64-linux-gnu- \
