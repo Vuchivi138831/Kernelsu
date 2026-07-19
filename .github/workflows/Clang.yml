@@ -7,7 +7,6 @@ jobs:
   download-and-push:
     runs-on: ubuntu-22.04
     
-    # Cấp quyền ghi (write) để workflow có thể push code lên repository
     permissions:
       contents: write
 
@@ -15,19 +14,30 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Commit đầy đủ lịch sử để tránh xung đột khi push
+          fetch-depth: 0
+
+      - name: Clean Old Gitlink (If Exists)
+        run: |
+          # Xóa thư mục lỗi và xóa nó khỏi bộ nhớ đệm của Git (index)
+          git rm -rf --cached Clang || true
+          rm -rf Clang
 
       - name: Download Proton Clang
         run: |
-          # Xóa thư mục Clang nếu đã tồn tại trước đó để tránh lỗi trùng lặp
-          rm -rf Clang
+          # Clone Proton Clang vào thư mục tạm thời
+          git clone https://github.com/kdrag0n/proton-clang.git --depth=1 Clang_tmp
           
-          # Clone Proton Clang vào thư mục tên 'Clang'
-          git clone https://github.com/kdrag0n/proton-clang.git --depth=1 Clang
+          # Di chuyển dữ liệu sang thư mục Clang chính thức
+          mkdir Clang
+          cp -r Clang_tmp/* Clang/
+          
+          # Xóa thư mục tạm thời và QUAN TRỌNG NHẤT: Xóa thư mục .git ẩn bên trong Clang
+          rm -rf Clang_tmp
+          rm -rf Clang/.git
+          rm -f Clang/.gitattributes Clang/.gitignore
 
       - name: Grant Executable Permissions
         run: |
-          # Cấp quyền thực thi (chmod +x) cho toàn bộ các file thực thi của trình biên dịch trong Clang/bin
           if [ -d "Clang/bin" ]; then
             chmod -R +x Clang/bin/
             echo "Successfully granted execution permissions to Clang/bin"
@@ -38,16 +48,14 @@ jobs:
 
       - name: Commit and Push to Repository
         run: |
-          # Cấu hình thông tin Git Action
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
-          # Kiểm tra xem có thay đổi gì không trước khi commit
           git add Clang
           if git diff --cached --quiet; then
-            echo "No changes detected. Clang is already up to date."
+            echo "No changes detected."
           else
-            git commit -m "Add/Update Proton Clang toolchain with executable permissions"
+            git commit -m "Fix: Add full Proton Clang toolchain source instead of gitlink"
             git push origin HEAD:${{ github.ref }}
             echo "Successfully pushed Clang directory to repository!"
           fi
