@@ -38,9 +38,10 @@ jobs:
           # Trỏ PATH vào thư mục Clang đã được push sẵn trong mã nguồn của bạn
           export PATH="$GITHUB_WORKSPACE/Clang/bin:$PATH"
           
-          # Bước 1: Đồng bộ hóa cấu hình cũ từ file config của bạn
+          # Bước 1: Đồng bộ hóa cấu hình cũ từ file config của bạn (Bổ sung CLANG_TRIPLE)
           make O=out ARCH=arm64 \
             CC=clang \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             AR=llvm-ar \
@@ -50,9 +51,10 @@ jobs:
             STRIP=llvm-strip \
             olddefconfig
             
-          # Bước 2: Tiến hành biên dịch (Chỉ định rõ đích đến là 'Image')
+          # Bước 2: Tiến hành biên dịch ra file Image (Bổ sung CLANG_TRIPLE)
           make -j$(nproc --all) O=out ARCH=arm64 \
             CC=clang \
+            CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
             AR=llvm-ar \
