@@ -1,0 +1,86 @@
+name: Biên dịch KernelSU
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc build-essential libelf-dev bison flex libssl-dev libgmp-dev libmpc-dev libmpfr-dev textinfo libyaml-dev cpio
+          
+      - name: Install Python 2
+        run: |
+          sudo apt-get install -y python2
+          sudo ln -sf /usr/bin/python2 /usr/bin/python
+
+      - name: Setup Proton Clang 13
+        run: |
+          git clone https://github.com/kdrag0n/proton-clang.git --depth=1 $GITHUB_WORKSPACE/proton-clang
+
+      - name: Locate and Prepare Config
+        run: |
+          # Tìm file config (không bắt đầu bằng dấu chấm) ngay tại thư mục gốc
+          CONFIG_FILE=$(find . -maxdepth 1 -type f ! -name ".*" -name "*config*" | head -n 1)
+          if [ -z "$CONFIG_FILE" ]; then
+            echo "ERROR: Could not find a config file at the root directory!"
+            exit 1
+          fi
+          echo "Found config file: $CONFIG_FILE"
+          
+          # Sao chép nó thành .config để tiến hành build (giữ nguyên, không chỉnh sửa cấu hình)
+          cp "$CONFIG_FILE" .config
+
+      - name: Compile Kernel
+        run: |
+          export PATH="$GITHUB_WORKSPACE/proton-clang/bin:$PATH"
+          
+          # Cấu hình môi trường cho Proton Clang (chỉ dùng Clang làm trình biên dịch và lắp ráp)
+          make -j$(nproc --all) O=out ARCH=arm64 \
+            CC=clang \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            AR=llvm-ar \
+            NM=llvm-nm \
+            OBJCOPY=llvm-objcopy \
+            OBJDUMP=llvm-objdump \
+            STRIP=llvm-strip \
+            olddefconfig
+            
+          make -j$(nproc --all) O=out ARCH=arm64 \
+            CC=clang \
+            CROSS_COMPILE=aarch64-linux-gnu- \
+            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            AR=llvm-ar \
+            NM=llvm-nm \
+            OBJCOPY=llvm-objcopy \
+            OBJDUMP=llvm-objdump \
+            STRIP=llvm-strip
+
+      - name: Compress Image to Gzip
+        run: |
+          # Kiểm tra xem file Image nằm ở đâu và tiến hành nén gzip nếu nó chưa được nén
+          if [ -f out/arch/arm64/boot/Image ]; then
+            gzip -c out/arch/arm64/boot/Image > out/arch/arm64/boot/Image.gz
+            echo "Successfully compressed Image to Image.gz"
+          elif [ -f out/arch/arm64/boot/Image.gz ]; then
+            echo "Image.gz already exists, skipping compression."
+          else
+            echo "ERROR: Target Image file not found!"
+            exit 1
+          fi
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kernel-Image-ProtonClang
+          path: |
+            out/arch/arm64/boot/Image
+            out/arch/arm64/boot/Image.gz
+            out/.config
