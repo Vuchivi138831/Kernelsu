@@ -1,0 +1,53 @@
+name: Download and Push Proton Clang
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download-and-push:
+    runs-on: ubuntu-22.04
+    
+    # Cấp quyền ghi (write) để workflow có thể push code lên repository
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Commit đầy đủ lịch sử để tránh xung đột khi push
+
+      - name: Download Proton Clang
+        run: |
+          # Xóa thư mục Clang nếu đã tồn tại trước đó để tránh lỗi trùng lặp
+          rm -rf Clang
+          
+          # Clone Proton Clang vào thư mục tên 'Clang'
+          git clone https://github.com/kdrag0n/proton-clang.git --depth=1 Clang
+
+      - name: Grant Executable Permissions
+        run: |
+          # Cấp quyền thực thi (chmod +x) cho toàn bộ các file thực thi của trình biên dịch trong Clang/bin
+          if [ -d "Clang/bin" ]; then
+            chmod -R +x Clang/bin/
+            echo "Successfully granted execution permissions to Clang/bin"
+          else
+            echo "ERROR: Clang/bin directory not found!"
+            exit 1
+          fi
+
+      - name: Commit and Push to Repository
+        run: |
+          # Cấu hình thông tin Git Action
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Kiểm tra xem có thay đổi gì không trước khi commit
+          git add Clang
+          if git diff --cached --quiet; then
+            echo "No changes detected. Clang is already up to date."
+          else
+            git commit -m "Add/Update Proton Clang toolchain with executable permissions"
+            git push origin HEAD:${{ github.ref }}
+            echo "Successfully pushed Clang directory to repository!"
+          fi
