@@ -20,53 +20,48 @@ jobs:
           sudo apt-get install -y python2
           sudo ln -sf /usr/bin/python2 /usr/bin/python
 
+      - name: Download GCC Toolchains (Trợ thủ cho Clang)
+        run: |
+          # Tải GCC 64-bit để hỗ trợ Link/Assemble cho ARM64
+          git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b ndk-release-r21 --depth=1 $GITHUB_WORKSPACE/gcc64
+          # Tải GCC 32-bit để hỗ trợ tương thích ngược (nếu kernel yêu cầu)
+          git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 -b ndk-release-r21 --depth=1 $GITHUB_WORKSPACE/gcc32
+
       - name: Prepare Config
         run: |
-          # Kiểm tra file dandelion_config ở thư mục gốc
           if [ ! -f "dandelion_config" ]; then
             echo "ERROR: Could not find 'dandelion_config' at the root directory!"
             exit 1
           fi
           echo "Found config file: dandelion_config"
-          
-          # Tạo thư mục out và sao chép cấu hình thành .config
           mkdir -p out
           cp dandelion_config out/.config
 
       - name: Compile Kernel
         run: |
-          # Trỏ PATH vào thư mục Clang đã được push sẵn trong mã nguồn của bạn
-          export PATH="$GITHUB_WORKSPACE/Clang/bin:$PATH"
+          # Thêm cả Proton Clang và 2 bộ GCC vào đường dẫn hệ thống PATH
+          export PATH="$GITHUB_WORKSPACE/Clang/bin:$GITHUB_WORKSPACE/gcc64/bin:$GITHUB_WORKSPACE/gcc32/bin:$PATH"
           
-          # Bước 1: Đồng bộ hóa cấu hình cũ từ file config của bạn (Bổ sung CLANG_TRIPLE)
-          make O=out ARCH=arm64 \
+          # Cấu hình đầy đủ các biến môi trường để Proton Clang gọi GCC khi cần làm bài test
+          MAKE_FLAGS="O=out ARCH=arm64 \
             CC=clang \
             CLANG_TRIPLE=aarch64-linux-gnu- \
-            CROSS_COMPILE=aarch64-linux-gnu- \
-            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+            CROSS_COMPILE=aarch64-linux-android- \
+            CROSS_COMPILE_ARM32=arm-linux-androideabi- \
             AR=llvm-ar \
             NM=llvm-nm \
             OBJCOPY=llvm-objcopy \
             OBJDUMP=llvm-objdump \
-            STRIP=llvm-strip \
-            olddefconfig
+            STRIP=llvm-strip"
+          
+          # Bước 1: Đồng bộ hóa cấu hình cũ (Bài test lúc này sẽ chạy đúng và tự động vượt qua)
+          make $MAKE_FLAGS olddefconfig
             
-          # Bước 2: Tiến hành biên dịch ra file Image (Bổ sung CLANG_TRIPLE)
-          make -j$(nproc --all) O=out ARCH=arm64 \
-            CC=clang \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CROSS_COMPILE=aarch64-linux-gnu- \
-            CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-            AR=llvm-ar \
-            NM=llvm-nm \
-            OBJCOPY=llvm-objcopy \
-            OBJDUMP=llvm-objdump \
-            STRIP=llvm-strip \
-            Image
+          # Bước 2: Tiến hành biên dịch ra file Image
+          make -j$(nproc --all) $MAKE_FLAGS Image
 
       - name: Compress Image to Gzip
         run: |
-          # Kiểm tra xem file Image nằm ở đâu và tiến hành nén gzip
           if [ -f out/arch/arm64/boot/Image ]; then
             gzip -c out/arch/arm64/boot/Image > out/arch/arm64/boot/Image.gz
             echo "Successfully compressed Image to Image.gz"
