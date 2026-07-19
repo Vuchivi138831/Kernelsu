@@ -13,7 +13,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc build-essential libelf-dev bison flex libssl-dev libgmp-dev libmpc-dev libmpfr-dev textinfo libyaml-dev cpio
+          sudo apt-get install -y bc build-essential libelf-dev bison flex libssl-dev libgmp-dev libmpc-dev libmpfr-dev texinfo libyaml-dev cpio
           
       - name: Install Python 2
         run: |
