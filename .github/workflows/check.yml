@@ -1,0 +1,62 @@
+name: Kernel Code Safety Check
+
+on:
+  push:
+    branches: [ "main", "master", "android-10.0" ] # Thay đổi tùy theo tên branch của bạn
+  pull_request:
+    branches: [ "main", "master", "android-10.0" ]
+  workflow_dispatch: # Cho phép bạn bấm chạy thủ công trên GitHub
+
+jobs:
+  scan-makefiles:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Scan Target Makefiles for Risky Paths
+      run: |
+        TARGET_DIR="drivers/misc/mediatek/connectivity"
+        echo "=== Bắt đầu quét các file Makefile tại $TARGET_DIR ==="
+        
+        # Kiểm tra xem thư mục mục tiêu có tồn tại không
+        if [ ! -d "$TARGET_DIR" ]; then
+          echo "❌ Thư mục $TARGET_DIR không tồn tại trong repo!"
+          exit 1
+        fi
+
+        # Định nghĩa các từ khóa/đường dẫn nguy hiểm cần tìm kiếm
+        PATTERN_1="arch/arm64/boot/dts"
+        PATTERN_2="drivers/misc"
+        
+        FOUND_ISSUE=0
+
+        # Tìm tất cả các file Makefile trong thư mục chỉ định và quét từng file
+        while IFS= read -r file; do
+          echo "🔍 Đang kiểm tra: $file"
+          
+          # Tìm kiếm đường dẫn dts nguy hiểm
+          if grep -rn "$PATTERN_1" "$file"; then
+            echo "⚠️ CẢNH BÁO: Phát hiện liên kết tới DTS ($PATTERN_1) trong file $file"
+            FOUND_ISSUE=1
+          fi
+          
+          # Tìm kiếm đường dẫn drivers/misc nguy hiểm 
+          # Sử dụng grep để lọc kỹ hơn, tránh tự trùng khớp với chính thư mục cha của nó
+          if grep -rn "$PATTERN_2" "$file" | grep -v "mediatek/connectivity"; then
+            echo "⚠️ CẢNH BÁO: Phát hiện liên kết ra ngoài tới $PATTERN_2 trong file $file"
+            FOUND_ISSUE=1
+          fi
+          
+        done < <(find "$TARGET_DIR" -type f -name "Makefile")
+
+        # Trả về kết quả cho Workflow
+        echo "=================================================="
+        if [ $FOUND_ISSUE -eq 1 ]; then
+          echo "❌ THẤT BẠI: Phát hiện các đường dẫn gọi hàm hoặc file nguy hiểm! Vui lòng kiểm tra lại log phía trên."
+          exit 1
+        else
+          echo "✅ THÀNH CÔNG: Tất cả các file Makefile tại cụm connectivity đều sạch sẽ và an toàn."
+          exit 0
+        fi
