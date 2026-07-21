@@ -50,6 +50,10 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-gnu-
           export CROSS_COMPILE_ARM32=arm-linux-androideabi-
 
+          # SỬA LỖI YYLLOC: Thêm cờ -fcommon cho Host Compiler
+          export HOSTCFLAGS="-fcommon"
+          export HOSTCXXFLAGS="-fcommon"
+
           # Kiểm tra file config ở thư mục gốc
           if [ ! -f "config" ]; then
             echo "Lỗi: Không tìm thấy file 'config' ở thư mục gốc!"
@@ -60,12 +64,14 @@ jobs:
           cp config .config
 
           echo "=== Cấu hình kernel ==="
-          make ARCH=arm64 olddefconfig
+          make ARCH=arm64 HOSTCFLAGS="-fcommon" olddefconfig
 
           echo "=== Bắt đầu biên dịch Kernel ==="
           make -j$(nproc) \
             ARCH=arm64 \
             CC=clang \
+            HOSTCFLAGS="-fcommon" \
+            HOSTCXXFLAGS="-fcommon" \
             CLANG_TRIPLE=aarch64-linux-gnu- \
             CROSS_COMPILE=aarch64-linux-gnu- \
             CROSS_COMPILE_ARM32=arm-linux-androideabi-
