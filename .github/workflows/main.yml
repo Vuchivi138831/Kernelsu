@@ -1,4 +1,4 @@
-name: Build Redmi 9A KernelSu
+name: Build Redmi 9A KSU
 
 on:
   workflow_dispatch:
