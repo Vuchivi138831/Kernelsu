@@ -54,9 +54,10 @@ jobs:
     - name: Install Build Essentials
       run: |
         sudo apt update
+        # Đã loại bỏ gói gcc-arm-linux-gnueabi thừa
         sudo apt install -y git bc bison flex libssl-dev make \
         libc6-dev libncurses5-dev gcc-aarch64-linux-gnu \
-        gcc-arm-linux-gnueabi curl build-essential wget zip unzip
+        curl build-essential wget zip unzip
 
     - name: Lấy Cache Python2 đã lưu từ Job trước
       id: load-python2-cache
@@ -75,6 +76,12 @@ jobs:
         sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python2
         python --version
 
+    - name: Tải ARM32 Toolchain chuẩn Android (arm-linux-androideabi-)
+      run: |
+        mkdir -p toolchains/arm32
+        echo "[+] Đang tải GCC ARM32 Android toolchain từ Google AOSP..."
+        git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 toolchains/arm32
+
     - name: Compile Kernel Siêu Tối Giản
       run: |
         if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
@@ -86,7 +93,8 @@ jobs:
           git checkout -- drivers/char/rpmb/rpmb-mtk.c
         fi
 
-        export PATH="$GITHUB_WORKSPACE/toolchains/clang/bin:/home/runner/python2_install/bin:$PATH"
+        # Nạp đường dẫn arm32/bin và python2_install/bin vào PATH
+        export PATH="$GITHUB_WORKSPACE/toolchains/clang/bin:$GITHUB_WORKSPACE/toolchains/arm32/bin:/home/runner/python2_install/bin:$PATH"
         export ARCH=arm64
         export SUBARCH=arm64
         
