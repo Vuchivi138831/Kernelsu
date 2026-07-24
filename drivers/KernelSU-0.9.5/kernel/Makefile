@@ -21,7 +21,7 @@ obj-$(CONFIG_KSU) += kernelsu.o
 # ĐÃ CẬP NHẬT: Ép phiên bản KernelSU về mức TỐI THIỂU (32377) để đạt độ ổn định
 # Giúp nhân vừa đủ điều kiện vượt qua bài kiểm tra của App Manager 32-bit.
 # =========================================================================
-KSU_VERSION := 32558
+KSU_VERSION := 11071
 $(info -- KernelSU Custom Stable Version: $(KSU_VERSION))
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)
 
