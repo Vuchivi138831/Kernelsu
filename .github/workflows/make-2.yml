@@ -76,11 +76,14 @@ jobs:
         sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python2
         python --version
 
-    - name: Tải ARM32 Toolchain chuẩn Android (arm-linux-androideabi-)
+    - name: Kiểm tra bộ Toolchain ARM32 sẵn có trong Mã nguồn
       run: |
-        mkdir -p toolchains/arm32
-        echo "[+] Đang tải GCC ARM32 Android toolchain từ Google AOSP..."
-        git clone --depth=1 -b android-10.0.0_r47 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 toolchains/arm32
+        if [ -d "toolchains/arm32/bin" ]; then
+          echo "[+] Đã tìm thấy toolchains/arm32 sẵn có trong mã nguồn!"
+        else
+          echo "[-] LỖI: Không tìm thấy 'toolchains/arm32/bin'! Hãy chắc chắn bạn đã chạy workflow 'gcc.yml' trước đó."
+          exit 1
+        fi
 
     - name: Cấu hình biến môi trường PATH
       run: |
