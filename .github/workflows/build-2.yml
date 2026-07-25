@@ -1,96 +1,141 @@
-name: Build Kernel 4.9 with Proton Clang
+name: Biên dịch kernel cho redmi 9A
 
 on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
+  # ========================================================
+  # JOB 1: BIÊN DỊCH VÀ LƯU TRỮ PYTHON2 VÀO CACHE TRƯỚC
+  # ========================================================
+  setup_python2:
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4
+    - name: Cài đặt công cụ cần thiết để dựng Python
+      run: |
+        sudo apt update
+        sudo apt install -y make build-essential wget zlib1g-dev libffi-dev libsqlite3-dev libreadline-dev libbz2-dev
 
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y bc build-essential libelf-dev bison flex libssl-dev libgmp-dev libmpc-dev libmpfr-dev texinfo libyaml-dev cpio
-          
-      - name: Install Python 2
-        run: |
-          sudo apt-get install -y python2
-          sudo ln -sf /usr/bin/python2 /usr/bin/python
+    - name: Kiểm tra Cache Python2
+      id: python2-cache
+      uses: actions/cache@v4
+      with:
+        path: /home/runner/python2_install
+        key: python2-complete-cache-v3
 
-      - name: Download GCC Toolchains (Trợ thủ cho Proton Clang)
-        run: |
-          git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b ndk-release-r21 --depth=1 $GITHUB_WORKSPACE/gcc64
-          git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 -b ndk-release-r21 --depth=1 $GITHUB_WORKSPACE/gcc32
+    - name: Biên dịch và Lưu Cache trực tiếp (Nếu chưa có)
+      if: steps.python2-cache.outputs.cache-hit != 'true'
+      run: |
+        echo "[+] Không tìm thấy Cache, tiến hành build mới Python2..."
+        mkdir -p /home/runner/python2_install
+        wget -q https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
+        tar -xf Python-2.7.18.tgz
+        cd Python-2.7.18
+        ./configure --prefix=/home/runner/python2_install
+        make -j$(nproc)
+        make install
+        cd ..
+        rm -rf Python-2.7.18 Python-2.7.18.tgz
+        echo "[+] Đã build xong Python2 thành công và chuẩn bị đóng Cache!"
 
-      - name: Patch Driver Source Code (Ép tắt cảnh báo thụt lề)
-        run: |
-          echo "Tiến hành can thiệp trực tiếp vào file nguồn driver..."
-          TARGET_FILE="drivers/input/touchscreen/mediatek/hxchipset/himax_debug.c"
-          
-          if [ -f "$TARGET_FILE" ]; then
-            # Chèn lệnh chỉ thị pragma vào dòng đầu tiên để ép Proton Clang bỏ qua bộ quét misleading-indentation
-            sed -i '1s/^/#pragma GCC diagnostic ignored "-Wmisleading-indentation"\n/' "$TARGET_FILE"
-            echo "Successfully patched $TARGET_FILE"
-          else
-            echo "ERROR: Không tìm thấy file $TARGET_FILE để sửa!"
-            exit 1
-          fi
+  # ========================================================
+  # JOB 2: XÂY DỰNG HẠT NHÂN KERNEL (CHẠY SAU KHI CÓ CACHE)
+  # ========================================================
+  build_kernel:
+    runs-on: ubuntu-latest
+    needs: setup_python2 # Ép buộc phải xong Job 1 mới cho chạy Job này
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
 
-      - name: Prepare Config
-        run: |
-          if [ ! -f "dandelion_config" ]; then
-            echo "ERROR: Could not find 'dandelion_config' at the root directory!"
-            exit 1
-          fi
-          echo "Found config file: dandelion_config"
-          mkdir -p out
-          cp dandelion_config out/.config
+    - name: Install Build Essentials
+      run: |
+        sudo apt update
+        # Cài đặt gcc-arm-linux-gnueabi cho công cụ 32-bit tiêu chuẩn
+        sudo apt install -y git bc bison flex libssl-dev make \
+        libc6-dev libncurses5-dev gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
+        curl build-essential wget zip unzip
 
-      - name: Compile Kernel
-        run: |
-          # Trỏ PATH vào thư mục Clang riêng của bạn và 2 bộ GCC bổ trợ
-          export PATH="$GITHUB_WORKSPACE/Clang/bin:$GITHUB_WORKSPACE/gcc64/bin:$GITHUB_WORKSPACE/gcc32/bin:$PATH"
-          
-          # Cấu hình biến môi trường chuẩn cho Proton Clang
-          MAKE_FLAGS="O=out ARCH=arm64 \
-            CC=clang \
-            CLANG_TRIPLE=aarch64-linux-gnu- \
-            CROSS_COMPILE=aarch64-linux-android- \
-            CROSS_COMPILE_ARM32=arm-linux-androideabi- \
-            AR=llvm-ar \
-            NM=llvm-nm \
-            OBJCOPY=llvm-objcopy \
-            OBJDUMP=llvm-objdump \
-            STRIP=llvm-strip \
-            HOSTCFLAGS=-fcommon \
-            HOSTLDFLAGS=-fcommon"
-          
-          # Bước 1: Đồng bộ hóa cấu hình cũ
-          make $MAKE_FLAGS olddefconfig
-            
-          # Bước 2: Tiến hành biên dịch ra file Image
-          make -j$(nproc --all) $MAKE_FLAGS Image
+    - name: Lấy Cache Python2 đã lưu từ Job trước
+      id: load-python2-cache
+      uses: actions/cache@v4
+      with:
+        path: /home/runner/python2_install
+        key: python2-complete-cache-v3
 
-      - name: Compress Image to Gzip
-        run: |
-          if [ -f out/arch/arm64/boot/Image ]; then
-            gzip -c out/arch/arm64/boot/Image > out/arch/arm64/boot/Image.gz
-            echo "Successfully compressed Image to Image.gz"
-          elif [ -f out/arch/arm64/boot/Image.gz ]; then
-            echo "Image.gz already exists, skipping compression."
-          else
-            echo "ERROR: Target Image file not found!"
-            exit 1
-          fi
+    - name: Cấu hình liên kết Python2 vào hệ thống
+      run: |
+        if [ ! -d "/home/runner/python2_install/bin" ]; then
+          echo "[-] LỖI NGHIÊM TRỌNG: Không lấy được Cache Python2 từ bước trước!"
+          exit 1
+        fi
+        sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python
+        sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python2
+        python --version
 
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: Kernel-Image-ProtonClang
-          path: |
-            out/arch/arm64/boot/Image
-            out/arch/arm64/boot/Image.gz
-            out/.config
+    - name: Cấu hình biến môi trường PATH
+      run: |
+        echo "$GITHUB_WORKSPACE/toolchains/clang/bin" >> $GITHUB_PATH
+        echo "/home/runner/python2_install/bin" >> $GITHUB_PATH
+
+    - name: Compile Kernel Siêu Tối Giản
+      run: |
+        if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
+          echo "[-] LỖI: Không tìm thấy Clang tại toolchains/clang/!"
+          exit 1
+        fi
+
+        if [ -f "drivers/char/rpmb/rpmb-mtk.c" ]; then
+          git checkout -- drivers/char/rpmb/rpmb-mtk.c
+        fi
+
+        # Nạp đường dẫn Clang và python2_install/bin vào PATH
+        export PATH="$GITHUB_WORKSPACE/toolchains/clang/bin:/home/runner/python2_install/bin:$PATH"
+        export ARCH=arm64
+        export SUBARCH=arm64
+        
+        export CC=clang
+        export CROSS_COMPILE=aarch64-linux-gnu-
+        export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+        export CLANG_TRIPLE=aarch64-linux-gnu-
+        
+        export HOSTCFLAGS="-fcommon"
+        mkdir -p out
+
+        # 1. Tìm file config (không có dấu chấm) ở gốc và copy đổi tên thành out/.config để nạp cấu hình
+        if [ -f "config" ]; then
+          cp config out/.config
+          echo "[+] Đã tìm thấy file 'config' gốc và nạp vào thư mục build!"
+        else
+          echo "[-] LỖI: Không tìm thấy file cấu hình tên 'config' ở thư mục gốc để biên dịch!"
+          exit 1
+        fi
+
+        # 2. Đồng bộ lại cấu hình vừa nạp
+        make O=out olddefconfig
+
+        # 3. Tiến hành biên dịch và ĐẶT TÊN BIÊN DỊCH (LOCALVERSION)
+        make -j$(nproc --all) O=out \
+          CC=clang \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+          HOSTCFLAGS="-fcommon" \
+          LOCALVERSION="-KSU-Redmi9A" \
+          EXTRAVERSION=""
+
+    - name: Kiểm tra File Kernel Image
+      if: success()
+      run: |
+        if [ -f out/arch/arm64/boot/Image ]; then
+          echo "[+] Tìm thấy file Image nguyên bản thành công!"
+        else
+          echo "[-] LỖI: Không tìm thấy file Image tại out/arch/arm64/boot/!"
+          exit 1
+        fi
+
+    - name: Upload Kernel File
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Kernel-KSU.zip # Đổi tên gói tải về thành Kernel-KSU.zip
+        path: out/arch/arm64/boot/Image # Giữ nguyên tên file Image không qua nén gzip
