@@ -1,46 +1,42 @@
-name: Setup Clang Toolchain
+name: Vendor ARM32 Toolchain to Repo
 
 on:
-  workflow_dispatch: # Cho phép kích hoạt thủ công từ giao diện GitHub
+  workflow_dispatch: # Bấm nút chạy thủ công 1 lần duy nhất
 
-# Cấp quyền ghi cho quy trình làm việc (cần thiết để git push)
 permissions:
   contents: write
 
 jobs:
-  setup-clang:
+  download_and_push:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout mã nguồn
-        uses: actions/checkout@v4
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Kéo toàn bộ history để không bị xung đột khi push
 
-      - name: Xóa thư mục Clang cũ (nếu có) và tải lại
-        run: |
-          # Xóa thư mục Clang cũ nếu tồn tại
-          rm -rf Clang
-          
-          # Tạo thư mục Clang mới
-          mkdir -p Clang
-          cd Clang
-          
-          echo "Đang tải Clang..."
-          curl -sL "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android10-release/clang-r353983c.tar.gz" -o clang.tar.gz
-          
-          echo "Đang giải nén Clang..."
-          tar -xzf clang.tar.gz
-          rm clang.tar.gz
+    - name: Tải GCC ARM32 Toolchain
+      run: |
+        rm -rf toolchains/arm32 # Xóa thư mục cũ nếu có
+        mkdir -p toolchains/arm32
+        echo "[+] Đang clone GCC 32-bit..."
+        git clone --depth=1 -b android-10.0.0_r47 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 toolchains/arm32
+        
+        # Xóa thư mục .git bên trong toolchain để không bị biến thành Git Submodule
+        rm -rf toolchains/arm32/.git
 
-      - name: Cam kết và Push lại vào repository
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
-          git add Clang
-          # Kiểm tra xem có thay đổi mới không trước khi commit
-          if git diff --staged --quiet; then
-            echo "Không có thay đổi nào để push."
-          else
-            git commit -m "ci: update prebuilt Clang toolchain"
-            git push
-          fi
+    - name: Commit và Push về Repository
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        
+        git add toolchains/arm32
+        
+        # Kiểm tra xem có thay đổi gì để commit không
+        if git diff --staged --quiet; then
+          echo "[+] Không có thay đổi nào cần commit!"
+        else
+          git commit -m "ci: Add arm-linux-androideabi-4.9 toolchain"
+          git push
+          echo "[+] Đã push thành công GCC Toolchain vào mã nguồn!"
+        fi
