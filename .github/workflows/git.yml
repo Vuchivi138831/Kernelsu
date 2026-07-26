@@ -3,12 +3,18 @@ name: Restore KernelSU Git History (Latest)
 on:
   workflow_dispatch: # Chạy thủ công trên giao diện GitHub Actions
 
+# Cấp quyền ghi (write) cho quy trình làm việc
+permissions:
+  contents: write
+
 jobs:
   restore-git:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository hiện tại
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Lấy đầy đủ lịch sử của repo chính nếu cần
 
       - name: Khởi tạo và tải lịch sử Git mới nhất cho KernelSU
         run: |
@@ -29,7 +35,7 @@ jobs:
             git fetch origin main
 
             # 3. Đặt mốc lịch sử về commit mới nhất trên branch main 
-            # Dùng --soft để KHÔNG thay đổi hay đè bất kỳ file mã nguồn ZIP hiện tại nào của bạn
+            # Dùng --soft để KHÔNG làm thay đổi hay đè bất kỳ file mã nguồn ZIP hiện tại nào của bạn
             git reset --soft origin/main
 
             echo "Đã tạo thư mục .git thành công với lịch sử mới nhất!"
@@ -37,3 +43,15 @@ jobs:
             echo "Lỗi: Không tìm thấy thư mục $KSU_DIR"
             exit 1
           fi
+
+      - name: Commit và Push thư mục .git mới tạo (nếu muốn lưu vào Repo chính)
+        run: |
+          # Cấu hình git user để commit
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Lưu ý: Mặc định file .git bên trong subfolder có thể bị git coi là submodule hoặc bị ignore.
+          # Bỏ qua chặn nếu cần lưu cấu hình .git này vào repo gốc của bạn
+          git add -f drivers/KernelSU-0.9.5/.git || true
+          git commit -m "chore: Restore .git history for KernelSU" || echo "Không có thay đổi nào để commit"
+          git push
