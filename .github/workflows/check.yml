@@ -1,0 +1,47 @@
+name: Kiểm tra lệnh 32-bit trong Makefile
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check_makefiles:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
+
+    - name: Quét và Tìm kiếm trong mã nguồn Kernel
+      run: |
+        echo "================================================="
+        echo " BẮT ĐẦU QUÉT TOÀN BỘ MAKEFILE TRONG MÃ NGUỒN"
+        echo "================================================="
+
+        # Tạo file chứa kết quả
+        RESULT_FILE="check_results.txt"
+        echo "KẾT QUẢ QUÉT CÁC LỆNH 32-BIT:" > $RESULT_FILE
+        echo "-------------------------------------------------" >> $RESULT_FILE
+
+        # 1. Quét tìm arm-linux-gnueabi-gcc
+        echo -e "\n[1] Tìm kiếm 'arm-linux-gnueabi-gcc':" >> $RESULT_FILE
+        grep -rnI --include="*Makefile*" --include="*.mk" --include="Kbuild" "arm-linux-gnueabi-gcc" . >> $RESULT_FILE || echo "-> Không tìm thấy" >> $RESULT_FILE
+
+        # 2. Quét tìm arm-linux-gnueabi-ld
+        echo -e "\n[2] Tìm kiếm 'arm-linux-gnueabi-ld':" >> $RESULT_FILE
+        grep -rnI --include="*Makefile*" --include="*.mk" --include="Kbuild" "arm-linux-gnueabi-ld" . >> $RESULT_FILE || echo "-> Không tìm thấy" >> $RESULT_FILE
+
+        # 3. Quét tìm arm-linux-gnueabi-as
+        echo -e "\n[3] Tìm kiếm 'arm-linux-gnueabi-as':" >> $RESULT_FILE
+        grep -rnI --include="*Makefile*" --include="*.mk" --include="Kbuild" "arm-linux-gnueabi-as" . >> $RESULT_FILE || echo "-> Không tìm thấy" >> $RESULT_FILE
+
+        # 4. Quét tổng quát theo tiền tố CROSS_COMPILE_ARM32
+        echo -e "\n[4] Tìm các nơi gọi CROSS_COMPILE_ARM32:" >> $RESULT_FILE
+        grep -rnI --include="*Makefile*" --include="*.mk" --include="Kbuild" "CROSS_COMPILE_ARM32" . >> $RESULT_FILE || echo "-> Không tìm thấy" >> $RESULT_FILE
+
+        # In kết quả ra màn hình Log
+        cat $RESULT_FILE
+
+    - name: Lưu kết quả thành Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Ket-Qua-Kiem-Tra-Makefile
+        path: check_results.txt
