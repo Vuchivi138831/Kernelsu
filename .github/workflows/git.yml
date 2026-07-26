@@ -1,0 +1,38 @@
+name: Restore KernelSU Git History
+
+on:
+  workflow_dispatch: # Nút bấm chạy thủ công trong giao diện GitHub Actions
+
+jobs:
+  restore-git:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository hiện tại
+        uses: actions/checkout@v4
+
+      - name: Khởi tạo và tải lịch sử Git cho KernelSU v0.9.5
+        run: |
+          KSU_DIR="drivers/KernelSU-0.9.5"
+
+          if [ -d "$KSU_DIR" ]; then
+            cd "$KSU_DIR"
+            
+            # 1. Khởi tạo thư mục .git nếu chưa có
+            if [ ! -d ".git" ]; then
+              echo "Khởi tạo thư mục .git..."
+              git init
+              git remote add origin https://github.com/tiann/KernelSU.git
+            fi
+
+            # 2. Tải toàn bộ lịch sử commit từ kho lưu trữ của tiann
+            echo "Đang tải toàn bộ lịch sử commit từ tiann/KernelSU..."
+            git fetch origin
+
+            # 3. Liên kết lịch sử vào đúng tag v0.9.5 (không đè hay thay đổi mã nguồn dạng ZIP của bạn)
+            git reset --soft v0.9.5
+
+            echo "Đã tạo thư mục .git thành công cho KernelSU!"
+          else
+            echo "Lỗi: Không tìm thấy thư mục $KSU_DIR"
+            exit 1
+          fi
