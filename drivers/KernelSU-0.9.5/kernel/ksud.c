@@ -550,6 +550,13 @@ static struct kprobe execve_kp = {
 	.symbol_name = SYS_EXECVE_SYMBOL,
 	.pre_handler = sys_execve_handler_pre,
 };
+
+#ifdef CONFIG_COMPAT
+static struct kprobe compat_execve_kp = {
+	.symbol_name = COMPAT_SYS_EXECVE_SYMBOL,
+	.pre_handler = sys_execve_handler_pre,
+};
+#endif
 #else
 static struct kprobe execve_kp = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
@@ -588,6 +595,9 @@ static void do_stop_vfs_read_hook(struct work_struct *work)
 static void do_stop_execve_hook(struct work_struct *work)
 {
 	unregister_kprobe(&execve_kp);
+#ifdef CONFIG_COMPAT
+	unregister_kprobe(&compat_execve_kp);
+#endif
 }
 
 static void do_stop_input_hook(struct work_struct *work)
@@ -643,6 +653,11 @@ void ksu_ksud_init()
 	ret = register_kprobe(&execve_kp);
 	pr_info("ksud: execve_kp: %d\n", ret);
 
+#ifdef CONFIG_COMPAT
+	ret = register_kprobe(&compat_execve_kp);
+	pr_info("ksud: compat_execve_kp: %d\n", ret);
+#endif
+
 	ret = register_kprobe(&vfs_read_kp);
 	pr_info("ksud: vfs_read_kp: %d\n", ret);
 
@@ -659,6 +674,9 @@ void ksu_ksud_exit()
 {
 #ifdef CONFIG_KPROBES
 	unregister_kprobe(&execve_kp);
+#ifdef CONFIG_COMPAT
+	unregister_kprobe(&compat_execve_kp);
+#endif
 	// this should be done before unregister vfs_read_kp
 	// unregister_kprobe(&vfs_read_kp);
 	unregister_kprobe(&input_event_kp);
