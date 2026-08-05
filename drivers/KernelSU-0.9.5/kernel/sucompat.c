@@ -307,6 +307,13 @@ static struct kprobe execve_kp = {
 	.symbol_name = SYS_EXECVE_SYMBOL,
 	.pre_handler = sys_execve_handler_pre,
 };
+
+#ifdef CONFIG_COMPAT
+static struct kprobe compat_execve_kp = {
+	.symbol_name = COMPAT_SYS_EXECVE_SYMBOL,
+	.pre_handler = sys_execve_handler_pre,
+};
+#endif
 #else
 static struct kprobe execve_kp = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
@@ -347,6 +354,10 @@ void ksu_sucompat_init()
 	int ret;
 	ret = register_kprobe(&execve_kp);
 	pr_info("sucompat: execve_kp: %d\n", ret);
+#ifdef CONFIG_COMPAT
+	ret = register_kprobe(&compat_execve_kp);
+	pr_info("sucompat: compat_execve_kp: %d\n", ret);
+#endif
 	ret = register_kprobe(&newfstatat_kp);
 	pr_info("sucompat: newfstatat_kp: %d\n", ret);
 	ret = register_kprobe(&faccessat_kp);
@@ -360,6 +371,9 @@ void ksu_sucompat_exit()
 {
 #ifdef CONFIG_KPROBES
 	unregister_kprobe(&execve_kp);
+#ifdef CONFIG_COMPAT
+	unregister_kprobe(&compat_execve_kp);
+#endif
 	unregister_kprobe(&newfstatat_kp);
 	unregister_kprobe(&faccessat_kp);
 	unregister_kprobe(&pts_unix98_lookup_kp);
