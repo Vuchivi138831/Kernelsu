@@ -25,6 +25,7 @@
 #define SYS_FACCESSAT_SYMBOL "__arm64_sys_faccessat"
 #define SYS_EXECVE_SYMBOL "__arm64_sys_execve"
 
+#define COMPAT_SYS_PRCTL_SYMBOL "__arm64_compat_sys_prctl"
 #define COMPAT_SYS_READ_SYMBOL "__arm64_compat_sys_read"
 #define COMPAT_SYS_EXECVE_SYMBOL "__arm64_compat_sys_execve"
 #define COMPAT_SYS_FACCESSAT_SYMBOL "__arm64_compat_sys_faccessat"
@@ -36,6 +37,7 @@
 #define SYS_FACCESSAT_SYMBOL "sys_faccessat"
 #define SYS_EXECVE_SYMBOL "sys_execve"
 
+#define COMPAT_SYS_PRCTL_SYMBOL "compat_sys_prctl"
 #define COMPAT_SYS_READ_SYMBOL "compat_sys_read"
 #define COMPAT_SYS_EXECVE_SYMBOL "compat_sys_execve"
 #define COMPAT_SYS_FACCESSAT_SYMBOL "compat_sys_faccessat"
@@ -65,6 +67,7 @@
 #define SYS_FACCESSAT_SYMBOL "__x64_sys_faccessat"
 #define SYS_EXECVE_SYMBOL "__x64_sys_execve"
 
+#define COMPAT_SYS_PRCTL_SYMBOL "__ia32_compat_sys_prctl"
 #define COMPAT_SYS_READ_SYMBOL "__ia32_compat_sys_read"
 #define COMPAT_SYS_EXECVE_SYMBOL "__ia32_compat_sys_execve"
 #define COMPAT_SYS_FACCESSAT_SYMBOL "__ia32_compat_sys_faccessat"
@@ -76,6 +79,7 @@
 #define SYS_FACCESSAT_SYMBOL "sys_faccessat"
 #define SYS_EXECVE_SYMBOL "sys_execve"
 
+#define COMPAT_SYS_PRCTL_SYMBOL "compat_sys_prctl"
 #define COMPAT_SYS_READ_SYMBOL "compat_sys_read"
 #define COMPAT_SYS_EXECVE_SYMBOL "compat_sys_execve"
 #define COMPAT_SYS_FACCESSAT_SYMBOL "compat_sys_faccessat"
