@@ -41,7 +41,6 @@
 #include "manager.h"
 #include "selinux/selinux.h"
 #include "throne_tracker.h"
-#include "throne_tracker.h"
 #include "kernel_compat.h"
 
 static bool ksu_module_mounted = false;
@@ -263,7 +262,7 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 	// Both root manager and root processes should be allowed to get version
 	if (arg2 == CMD_GET_VERSION) {
 		u32 version = KERNEL_SU_VERSION;
-		if (copy_to_user(arg3, &version, sizeof(version))) {
+		if (copy_to_user((void __user *)arg3, &version, sizeof(version))) {
 			pr_err("prctl reply error, cmd: %lu\n", arg2);
 		}
 #ifdef MODULE
@@ -271,7 +270,7 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 #else
 		u32 is_lkm = 0x0;
 #endif
-		if (arg4 && copy_to_user(arg4, &is_lkm, sizeof(is_lkm))) {
+		if (arg4 && copy_to_user((void __user *)arg4, &is_lkm, sizeof(is_lkm))) {
 			pr_err("prctl reply error, cmd: %lu\n", arg2);
 		}
 		return 0;
@@ -314,7 +313,7 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 		if (!from_root) {
 			return 0;
 		}
-		if (!handle_sepolicy(arg3, arg4)) {
+		if (!handle_sepolicy(arg3, (void __user *)arg4)) {
 			if (copy_to_user(result, &reply_ok, sizeof(reply_ok))) {
 				pr_err("sepolicy: prctl reply error\n");
 			}
@@ -339,9 +338,9 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 		bool success = ksu_get_allow_list(array, &array_length,
 						  arg2 == CMD_GET_ALLOW_LIST);
 		if (success) {
-			if (!copy_to_user(arg4, &array_length,
+			if (!copy_to_user((void __user *)arg4, &array_length,
 					  sizeof(array_length)) &&
-			    !copy_to_user(arg3, array,
+			    !copy_to_user((void __user *)arg3, array,
 					  sizeof(u32) * array_length)) {
 				if (copy_to_user(result, &reply_ok,
 						 sizeof(reply_ok))) {
@@ -365,7 +364,7 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 		} else {
 			pr_err("unknown cmd: %lu\n", arg2);
 		}
-		if (!copy_to_user(arg4, &allow, sizeof(allow))) {
+		if (!copy_to_user((void __user *)arg4, &allow, sizeof(allow))) {
 			if (copy_to_user(result, &reply_ok, sizeof(reply_ok))) {
 				pr_err("prctl reply error, cmd: %lu\n", arg2);
 			}
@@ -383,14 +382,14 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 	// we are already manager
 	if (arg2 == CMD_GET_APP_PROFILE) {
 		struct app_profile profile;
-		if (copy_from_user(&profile, arg3, sizeof(profile))) {
+		if (copy_from_user(&profile, (void __user *)arg3, sizeof(profile))) {
 			pr_err("copy profile failed\n");
 			return 0;
 		}
 
 		bool success = ksu_get_app_profile(&profile);
 		if (success) {
-			if (copy_to_user(arg3, &profile, sizeof(profile))) {
+			if (copy_to_user((void __user *)arg3, &profile, sizeof(profile))) {
 				pr_err("copy profile failed\n");
 				return 0;
 			}
@@ -403,7 +402,7 @@ int ksu_handle_prctl(int option, unsigned long arg2, unsigned long arg3,
 
 	if (arg2 == CMD_SET_APP_PROFILE) {
 		struct app_profile profile;
-		if (copy_from_user(&profile, arg3, sizeof(profile))) {
+		if (copy_from_user(&profile, (void __user *)arg3, sizeof(profile))) {
 			pr_err("copy profile failed\n");
 			return 0;
 		}
@@ -575,6 +574,13 @@ static struct kprobe prctl_kp = {
 	.pre_handler = handler_pre,
 };
 
+#ifdef CONFIG_COMPAT
+static struct kprobe compat_prctl_kp = {
+	.symbol_name = COMPAT_SYS_PRCTL_SYMBOL,
+	.pre_handler = handler_pre,
+};
+#endif
+
 static int renameat_handler_pre(struct kprobe *p, struct pt_regs *regs)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
@@ -605,6 +611,13 @@ __maybe_unused int ksu_kprobe_init(void)
 		return rc;
 	}
 
+#ifdef CONFIG_COMPAT
+	rc = register_kprobe(&compat_prctl_kp);
+	if (rc) {
+		pr_info("compat_prctl kprobe failed: %d.\n", rc);
+	}
+#endif
+
 	rc = register_kprobe(&renameat_kp);
 	pr_info("renameat kp: %d\n", rc);
 
@@ -614,6 +627,9 @@ __maybe_unused int ksu_kprobe_init(void)
 __maybe_unused int ksu_kprobe_exit(void)
 {
 	unregister_kprobe(&prctl_kp);
+#ifdef CONFIG_COMPAT
+	unregister_kprobe(&compat_prctl_kp);
+#endif
 	unregister_kprobe(&renameat_kp);
 	return 0;
 }
@@ -624,6 +640,7 @@ static int ksu_task_prctl(int option, unsigned long arg2, unsigned long arg3,
 	ksu_handle_prctl(option, arg2, arg3, arg4, arg5);
 	return -ENOSYS;
 }
+
 // kernel 4.4 and 4.9
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 10, 0) || defined(CONFIG_IS_HW_HISI)
 static int ksu_key_permission(key_ref_t key_ref, const struct cred *cred,
@@ -641,6 +658,7 @@ static int ksu_key_permission(key_ref_t key_ref, const struct cred *cred,
 	return 0;
 }
 #endif
+
 static int ksu_inode_rename(struct inode *old_inode, struct dentry *old_dentry,
 			    struct inode *new_inode, struct dentry *new_dentry)
 {
