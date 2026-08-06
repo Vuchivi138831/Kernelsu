@@ -500,6 +500,8 @@ void ksu_allowlist_init(void)
 
 	BUILD_BUG_ON(sizeof(allow_list_bitmap) != PAGE_SIZE);
 	BUILD_BUG_ON(sizeof(allow_list_arr) != PAGE_SIZE);
+	// Chèn thêm dòng kiểm tra alignment ở đây:
+	BUILD_BUG_ON(sizeof(struct app_profile) % 4 != 0);
 
 	for (i = 0; i < ARRAY_SIZE(allow_list_arr); i++)
 		allow_list_arr[i] = -1;
