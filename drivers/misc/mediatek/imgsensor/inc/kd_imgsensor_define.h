@@ -1,14 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
+ * Copyright (c) 2019 MediaTek Inc.
  */
 
 #ifndef _KD_IMGSENSOR_DATA_H
@@ -120,7 +112,7 @@ enum ACDK_CAMERA_OPERATION_MODE_ENUM {
  ************************************************************************/
 
 /*  */
-#define MAX_NUM_OF_SUPPORT_SENSOR 16
+#define MAX_NUM_OF_SUPPORT_SENSOR 32
 /*  */
 #define SENSOR_CLOCK_POLARITY_HIGH    0
 #define SENSOR_CLOCK_POLARITY_LOW 1
@@ -130,8 +122,19 @@ enum ACDK_CAMERA_OPERATION_MODE_ENUM {
 #define SENSOR_DOES_NOT_KNOW      0xFFFFFFFF
 
 /* Define for sensor sync mode (bitwise) */
+#define SENSOR_NO_SYNC_MODE 0
 #define SENSOR_MASTER_SYNC_MODE 1
 #define SENSOR_SLAVE_SYNC_MODE 2
+
+/* Define for flicker range table */
+#define GEN_FLICKER_TABLE(var) \
+unsigned int ((var)[][2]) = { \
+	{147, 153}, /* 15fps */ \
+	{247, 253}, /* 25fps */ \
+	{297, 305}, /* 30fps */ \
+	{593, 607}, /* 60fps */ \
+	{0, 0} /* end of table */ \
+}
 
 #define SENSOR_FEATURE_START                     3000
 enum ACDK_SENSOR_FEATURE_ENUM {
@@ -270,6 +273,12 @@ enum ACDK_SENSOR_FEATURE_ENUM {
 	SENSOR_FEATURE_GET_PERIOD_BY_SCENARIO,
 	SENSOR_FEATURE_GET_BINNING_TYPE,
 	SENSOR_FEATURE_GET_Y_AVERAGE,
+	SENSOR_FEATURE_GET_GAIN_RANGE_BY_SCENARIO,
+	SENSOR_FEATURE_GET_BASE_GAIN_ISO_AND_STEP,
+	SENSOR_FEATURE_GET_MIN_SHUTTER_BY_SCENARIO,
+	SENSOR_FEATURE_GET_ANA_GAIN_TABLE,
+	SENSOR_FEATURE_GET_FRAME_CTRL_INFO_BY_SCENARIO,
+	SENSOR_FEATURE_GET_AWB_REQ_BY_SCENARIO,
 	SENSOR_FEATURE_MAX
 };
 
@@ -281,19 +290,10 @@ enum SENSOR_STATE_ENUM {
 };
 
 enum SENSOR_TEMPERATURE_STATE_ENUM {
-	/* Init status*/
 	SENSOR_TEMPERATURE_UNKNOWN_STATUS           = (1 << 0),
-
-	/* Temperature is valid or not */
 	SENSOR_TEMPERATURE_VALID                    = (1 << 1),
-
-	/* search sensor fail */
 	SENSOR_TEMPERATURE_CANNOT_SEARCH_SENSOR     = (1 << 2),
-
-	/* Not support thermal */
 	SENSOR_TEMPERATURE_NOT_SUPPORT_THERMAL      = (1 << 3),
-
-	/* Not power on */
 	SENSOR_TEMPERATURE_NOT_POWER_ON             = (1 << 4),
 	SENSOR_TEMPERATURE_MAX
 };
@@ -560,7 +560,9 @@ struct ACDK_SENSOR_INFO_STRUCT {
 
 	/* The frame of setting shutter default 0 for TG int */
 	MUINT8 AEShutDelayFrame;
-	MUINT8 AESensorGainDelayFrame;  /* The frame of setting sensor gain */
+
+	/* The frame of setting sensor gain */
+	MUINT8 AESensorGainDelayFrame;
 	MUINT8 AEISPGainDelayFrame;
 
 	/* The delay frame of setting frame length  */
@@ -603,7 +605,7 @@ struct ACDK_SENSOR_INFO_STRUCT {
 	MUINT8 SCAM_DEFAULT_DELAY;
 	MUINT8 SCAM_CRC_En;
 	MUINT8 SCAM_SOF_src;
-	MUINT32 SCAM_Timout_Cali;
+	MUINT32 SCAM_Timeout_Cali;
 	MUINT32 SensorMIPIDeskew;
 	MUINT16 SensorHorFOV;
 	MUINT16 SensorVerFOV;
@@ -704,25 +706,24 @@ enum ACDK_SENSOR_OPERATION_MODE_ENUM {
 };
 
 struct ACDK_SENSOR_EXPOSURE_WINDOW_STRUCT {
-
-	/* The first grabed column data of the image sensor in pixel count */
+	/* The first grabed column data of the image sensor in pixel
+	 * clock count
+	 */
 	MUINT16 GrabStartX;
-
-	/* The first grabed row data of the image sensor in pixel count */
+	/* The first grabed row data of the image sensor in pixel clock count */
 	MUINT16 GrabStartY;
-	MUINT16 ExposureWindowWidth;/* Exposure window width of image sensor */
-
+	/* Exposure window width of image sensor */
+	MUINT16 ExposureWindowWidth;
 	/* Exposure window height of image sensor */
 	MUINT16 ExposureWindowHeight;
-	MUINT16 ImageTargetWidth;   /* image captured width */
-	MUINT16 ImageTargetHeight;  /* image captuerd height */
-
+	/* image captured width */
+	MUINT16 ImageTargetWidth;
+	/* image captuerd height */
+	MUINT16 ImageTargetHeight;
 	/* exposure window width of image sensor + dummy pixel */
 	MUINT16 ExposurePixel;
-
 	/* exposure window width of image sensor + dummy pixel */
 	MUINT16 CurrentExposurePixel;
-
 	/* exposure window width of image sensor + dummy line */
 	MUINT16 ExposureLine;
 	MUINT16 ZoomFactor; /* digital zoom factor */
@@ -835,7 +836,6 @@ struct SENSOR_VC_INFO_STRUCT {
 	MUINT16 VC5_DataType;
 	MUINT16 VC5_SIZEH;
 	MUINT16 VC5_SIZEV;
-
 };
 
 enum VC_FEATURE {
@@ -893,25 +893,24 @@ struct SET_SENSOR_ISO {
 };
 
 struct SET_PD_BLOCK_INFO_T {
-	MUINT32 i4OffsetX;      /* start offset of first PD block */
+	/* start offset of first PD block */
+	MUINT32 i4OffsetX;
 	MUINT32 i4OffsetY;
-	MUINT32 i4PitchX;       /* PD block pitch */
+	/* PD block pitch */
+	MUINT32 i4PitchX;
 	MUINT32 i4PitchY;
-	MUINT32 i4PairNum;      /* PD pair num in one block */
-
+	/* PD pair num in one block */
+	MUINT32 i4PairNum;
 	/* sub block width (one PD pair in one sub block) */
 	MUINT32 i4SubBlkW;
-	MUINT32 i4SubBlkH;		/* sub block height */
+	/* sub block height */
+	MUINT32 i4SubBlkH;
 	MUINT32 i4PosL[16][2];	/* left pd pixel position in one block*/
 	MUINT32 i4PosR[16][2];	/* right pd pixel position in one block*/
-
-	/* 0:IMAGE_NORMAL,1:IMAGE_H_MIRROR,
-	 * 2:IMAGE_V_MIRROR,3:IMAGE_HV_MIRROR
-	 */
+	/* 0:IMAGE_NORMAL,1:IMAGE_H_MIRROR,2:IMAGE_V_MIRROR,3:IMAGE_HV_MIRROR*/
 	MUINT32 iMirrorFlip;
 	MUINT32 i4BlockNumX;
 	MUINT32 i4BlockNumY;
-
 	/* 1: 1st line is long exposure, 0: 1st line is short exposure*/
 	MUINT32 i4LeFirst;
 	MUINT32 i4Crop[10][2]; /* [scenario][crop] -> (xcrop, ycrop) */
@@ -922,7 +921,6 @@ enum IMGSENSOR_HDR_SUPPORT_TYPE_ENUM {
 	HDR_SUPPORT_RAW = 1,
 	HDR_SUPPORT_CAMSV = 2,
 	ZHDR_SUPPORT_RAW = 3,
-	MVHDR_SUPPORT_MultiCAMSV = 4,
 };
 
 enum IMGSENSOR_HDR_MODE_ENUM {

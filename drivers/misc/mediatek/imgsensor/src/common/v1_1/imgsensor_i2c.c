@@ -1,14 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2017 MediaTek Inc.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
+ * Copyright (c) 2019 MediaTek Inc.
  */
 
 #include "imgsensor_common.h"
@@ -152,7 +144,7 @@ enum IMGSENSOR_RETURN imgsensor_i2c_buffer_mode(int enable)
 	PK_DBG("i2c_buf_mode_en %d\n", enable);
 
 	if (pinst->pi2c_client == NULL) {
-		PK_PR_ERR("pi2c_client is NULL!\n");
+		pr_info("pi2c_client is NULL!\n");
 		return IMGSENSOR_RETURN_ERROR;
 	}
 
@@ -176,7 +168,7 @@ enum IMGSENSOR_RETURN imgsensor_i2c_read(
 	enum   IMGSENSOR_RETURN    ret   = IMGSENSOR_RETURN_SUCCESS;
 
 	if (pinst->pi2c_client == NULL) {
-		PK_PR_ERR("pi2c_client is NULL!\n");
+		pr_info("pi2c_client is NULL!\n");
 		return IMGSENSOR_RETURN_ERROR;
 	}
 
@@ -204,7 +196,7 @@ enum IMGSENSOR_RETURN imgsensor_i2c_read(
 		static DEFINE_RATELIMIT_STATE(ratelimit, 1 * HZ, 30);
 
 		if (__ratelimit(&ratelimit))
-			PK_PR_ERR(
+			pr_info(
 			"I2C read failed (0x%x)! speed(0=%d) (0x%x)\n",
 			ret, speed, *pwrite_data);
 		ret = IMGSENSOR_RETURN_ERROR;
@@ -231,7 +223,7 @@ enum IMGSENSOR_RETURN imgsensor_i2c_write(
 	int i   = 0;
 
 	if (pinst->pi2c_client == NULL) {
-		PK_PR_ERR("pi2c_client is NULL!\n");
+		pr_info("pi2c_client is NULL!\n");
 		return IMGSENSOR_RETURN_ERROR;
 	}
 
@@ -260,7 +252,7 @@ enum IMGSENSOR_RETURN imgsensor_i2c_write(
 		static DEFINE_RATELIMIT_STATE(ratelimit, 1 * HZ, 30);
 
 		if (__ratelimit(&ratelimit))
-			PK_PR_ERR(
+			pr_info(
 				"I2C write failed (0x%x)! speed(0=%d) (0x%x)\n",
 				ret, speed, *pwrite_data);
 		ret = IMGSENSOR_RETURN_ERROR;

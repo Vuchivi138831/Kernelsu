@@ -1,14 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
+ * Copyright (c) 2019 MediaTek Inc.
  */
 
 /*****************************************************************************
@@ -1903,9 +1895,9 @@ static kal_uint32 set_max_framerate_by_scenario(
 			imgsensor.min_frame_length = imgsensor.frame_length;
 			spin_unlock(&imgsensor_drv_lock);
 		} else {
-
-	if (imgsensor.current_fps != imgsensor_info.cap.max_framerate)
-		pr_debug(
+			if (imgsensor.current_fps
+				 != imgsensor_info.cap.max_framerate)
+				pr_debug(
 	    "Warning: current_fps %d fps is not support, so use cap's setting: %d fps!\n",
 	    framerate, imgsensor_info.cap.max_framerate / 10);
 
@@ -2045,6 +2037,7 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 	UINT32 *feature_data_32 = (UINT32 *) feature_para;
 	unsigned long long *feature_data = (unsigned long long *)feature_para;
 	UINT32 fps = 0;
+	int ret = 0;
 
 	struct SET_PD_BLOCK_INFO_T *PDAFinfo;
 	struct SENSOR_WINSIZE_INFO_STRUCT *wininfo;
@@ -2431,16 +2424,39 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 
 	case SENSOR_FEATURE_GET_PDAF_TYPE:
 		*feature_para = pdaf_sensor_mode;
-		if (pdaf_sensor_mode == 1)
-			sprintf(feature_para, "configure S5K2L7 as mode 1");
-		else if (pdaf_sensor_mode == 2)
-			sprintf(feature_para, "configure S5K2L7 as mode 2");
-		else if (pdaf_sensor_mode == 3)
-			sprintf(feature_para, "configure S5K2L7 as mode 3");
-		else
-			sprintf(
+		if (pdaf_sensor_mode == 1) {
+			ret = sprintf(feature_para,
+			"configure S5K2L7 as mode 1");
+			if (ret < 0) {
+				pr_info("Error! sprintf allocate 0, ret = %d",
+				ret);
+				return ret;
+			}
+		} else if (pdaf_sensor_mode == 2) {
+			ret = sprintf(feature_para,
+			"configure S5K2L7 as mode 2");
+			if (ret < 0) {
+				pr_info("Error! sprintf allocate 0, ret = %d",
+				ret);
+				return ret;
+			}
+		} else if (pdaf_sensor_mode == 3) {
+			ret = sprintf(feature_para,
+			"configure S5K2L7 as mode 3");
+			if (ret < 0) {
+				pr_info("Error! sprintf allocate 0, ret = %d",
+				ret);
+				return ret;
+			}
+		} else {
+			ret = sprintf(
 			    feature_para, "configure S5K2L7 as unknown mode");
-
+			if (ret < 0) {
+				pr_info("Error! sprintf allocate 0, ret = %d",
+				ret);
+				return ret;
+			}
+		}
 		pr_debug("get PDAF type = %d\n", pdaf_sensor_mode);
 		break;
 
@@ -2477,10 +2493,10 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 		switch (*feature_data) {
 		case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
 			if (fps == 240)
-			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+				*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
 				imgsensor_info.cap1.mipi_pixel_rate;
 			else
-			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+				*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
 				imgsensor_info.cap.mipi_pixel_rate;
 			break;
 		case MSDK_SCENARIO_ID_VIDEO_PREVIEW:

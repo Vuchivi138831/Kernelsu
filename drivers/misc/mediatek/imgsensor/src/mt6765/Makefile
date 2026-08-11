@@ -22,7 +22,6 @@ COMMON_VERSION := v1
 
 subdir-ccflags-y +=  -I$(IMGSENSOR_DRIVER_PATH)/common/$(COMMON_VERSION)
 obj-y				+= ../common/$(COMMON_VERSION)/imgsensor.o
-obj-y				+= ../common/$(COMMON_VERSION)/imgsensor.o
 obj-y				+= ../common/$(COMMON_VERSION)/imgsensor_hw.o
 obj-y				+= ../common/$(COMMON_VERSION)/imgsensor_i2c.o
 obj-y				+= ../common/$(COMMON_VERSION)/imgsensor_legacy.o
@@ -68,3 +67,4 @@ obj-y				+= camera_project/$(ARCH_MTK_PROJECT)/
 subdir-ccflags-y		+= -I$(IMGSENSOR_DRIVER_PATH)/$(MTK_PLATFORM)/camera_project/$(ARCH_MTK_PROJECT)/camera_hw
 endif
 
+#subdir-ccflags-y +=  -DNO_CLK_METER

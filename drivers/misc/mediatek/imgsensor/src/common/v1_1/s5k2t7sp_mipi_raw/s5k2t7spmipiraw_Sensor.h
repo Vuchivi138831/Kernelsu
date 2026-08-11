@@ -1,14 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
- * Copyright (C) 2016 MediaTek Inc.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
+ * Copyright (c) 2019 MediaTek Inc.
  */
 
 /*****************************************************************************
@@ -133,6 +125,7 @@ struct imgsensor_info_struct {
 	kal_uint8 ihdr_support;	/* 1, support; 0,not support */
 	kal_uint8 ihdr_le_firstline;	/* 1,le first ; 0, se first */
 	kal_uint8 sensor_mode_num;	/* support sensor mode num */
+	kal_uint8 frame_time_delay_frame;
 
 	kal_uint8 cap_delay_frame;	/* enter capture delay frame num */
 	kal_uint8 pre_delay_frame;	/* enter preview delay frame num */

@@ -26,9 +26,9 @@
 #include "ov_ov02b_iii_Sensor.h"
 
 #define PFX "ov02b_camera_sensor"
-#define LOG_INF(format, args...)    \
-	pr_debug(PFX "[%s] " format, __func__, ##args)
-
+/*#define LOG_INF(format, args...)    \
+	no_printk(PFX "[%s] " format, __func__, ##args) */
+#define LOG_INF(format, args...)
 #define VAILD_GROUP 0X1
 
 /* Camera Hardwareinfo */
@@ -240,10 +240,10 @@ static void set_max_framerate(UINT16 framerate,kal_bool min_framelength_en)
         imgsensor.frame_length = imgsensor_info.max_frame_length;
         imgsensor.dummy_line = imgsensor.frame_length - imgsensor.min_frame_length;
     }
-    if (min_framelength_en)
+    if (min_framelength_en) {
         imgsensor.min_frame_length = imgsensor.frame_length;
         spin_unlock(&imgsensor_drv_lock);
-
+    }
     set_dummy();
 }    /*    set_max_framerate  */
 
@@ -1308,7 +1308,7 @@ static kal_uint32 close(void)
 static kal_uint32 preview(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 		MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
-        pr_debug("[ov02b] preview mode start\n");
+        no_printk("[ov02b] preview mode start\n");
 	spin_lock(&imgsensor_drv_lock);
 	imgsensor.sensor_mode = IMGSENSOR_MODE_PREVIEW;
 	imgsensor.pclk = imgsensor_info.pre.pclk;
@@ -1324,7 +1324,7 @@ static kal_uint32 preview(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 static kal_uint32 capture(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 		MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
-        pr_debug("[ov02b] capture mode start\n");
+        no_printk("[ov02b] capture mode start\n");
 	spin_lock(&imgsensor_drv_lock);
 	imgsensor.sensor_mode = IMGSENSOR_MODE_CAPTURE;
 
@@ -1399,7 +1399,7 @@ static kal_uint32 slim_video(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 static kal_uint32 custom1(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
     MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
-    pr_debug("[ov02b] custom1 mode start\n");
+    no_printk("[ov02b] custom1 mode start\n");
     spin_lock(&imgsensor_drv_lock);
     imgsensor.sensor_mode = IMGSENSOR_MODE_CUSTOM1;
     imgsensor.pclk = imgsensor_info.custom1.pclk;

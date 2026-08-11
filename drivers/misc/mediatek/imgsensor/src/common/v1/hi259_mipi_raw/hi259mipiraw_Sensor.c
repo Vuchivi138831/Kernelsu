@@ -26,7 +26,7 @@
 
 #define PFX "hi259_camera_sensor"
 #define LOG_INF(format, args...)    \
-	pr_debug(PFX "[%s] " format, __func__, ##args)
+	no_printk(PFX "[%s] " format, __func__, ##args)
 
 //PDAF
 #define ENABLE_PDAF 0
@@ -2923,7 +2923,7 @@ static kal_uint32 set_test_pattern_mode(kal_bool enable)
 
 static kal_uint32 streaming_control(kal_bool enable)
 {
-	pr_debug("streaming_enable(0=Sw Standby,1=streaming): %d\n", enable);
+	no_printk("streaming_enable(0=Sw Standby,1=streaming): %d\n", enable);
 
 	if (enable) {
 		write_cmos_sensor(0x03, 0x00);

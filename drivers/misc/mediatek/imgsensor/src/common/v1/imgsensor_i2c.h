@@ -1,15 +1,7 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
- * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (c) 2019 MediaTek Inc.
  * Copyright (C) 2021 XiaoMi, Inc.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
 
 #ifndef __IMGSENSOR_I2C_H__
@@ -19,7 +11,12 @@
 #include <linux/i2c.h>
 #include <linux/mutex.h>
 
+#ifndef NO_I2C_MTK
 #include "i2c-mtk.h"
+#else
+#define mtk_i2c_transfer(adap, msgs, num, ext_flag, timing) \
+	i2c_transfer(adap, msgs, num)
+#endif
 
 #include "imgsensor_cfg_table.h"
 
@@ -42,8 +39,11 @@ struct IMGSENSOR_I2C_STATUS {
 
 struct IMGSENSOR_I2C_INST {
 	struct IMGSENSOR_I2C_STATUS status;
+	u16                 i2c_addr;
 	struct i2c_client   *pi2c_client;
+#ifndef CONFIG_EXTREME_LOW_RAM
 	struct i2c_msg       msg[IMGSENSOR_I2C_CMD_LENGTH_MAX];
+#endif
 };
 
 struct IMGSENSOR_I2C_CFG {
@@ -86,4 +86,3 @@ void imgsensor_i2c_set_device(struct IMGSENSOR_I2C_CFG *pi2c_cfg);
 #endif
 
 #endif
-

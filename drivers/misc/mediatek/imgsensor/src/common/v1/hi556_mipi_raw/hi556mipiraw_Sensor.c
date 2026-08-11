@@ -1,14 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2018 MediaTek Inc.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
+ * Copyright (c) 2019 MediaTek Inc.
  */
 
 #include <linux/videodev2.h>
@@ -326,7 +318,7 @@ static void write_shutter(kal_uint32 shutter)
 		if (realtime_fps > 300 && realtime_fps < 320)
 			set_max_framerate(300, 0);
 		// ADD END
-			write_cmos_sensor(0x0006, imgsensor.frame_length);
+		write_cmos_sensor(0x0006, imgsensor.frame_length);
 	}
 
 	// Update Shutter
@@ -1141,19 +1133,19 @@ static void capture_setting(kal_uint16 currefps)
 {
 #if MULTI_WRITE
 	if (currefps == 300) {
-	hi556_table_write_cmos_sensor(
-		addr_data_pair_capture_30fps_hi556,
-		sizeof(addr_data_pair_capture_30fps_hi556) /
-		sizeof(kal_uint16));
+		hi556_table_write_cmos_sensor(
+			addr_data_pair_capture_30fps_hi556,
+			sizeof(addr_data_pair_capture_30fps_hi556) /
+			sizeof(kal_uint16));
 	} else {
-	hi556_table_write_cmos_sensor(
-		addr_data_pair_capture_fps_hi556,
-		sizeof(addr_data_pair_capture_fps_hi556) /
-		sizeof(kal_uint16));
+		hi556_table_write_cmos_sensor(
+			addr_data_pair_capture_fps_hi556,
+			sizeof(addr_data_pair_capture_fps_hi556) /
+			sizeof(kal_uint16));
 	}
 #else
 	if (currefps == 300) {
-		LOG_INF("capture_setting fps = 300\n");
+		LOG_INF("%s fps = 300\n", __func__);
 		write_cmos_sensor(0x0b0a, 0x8252);
 		write_cmos_sensor(0x0f30, 0x6e25);
 		write_cmos_sensor(0x0f32, 0x7067);
@@ -1196,7 +1188,7 @@ static void capture_setting(kal_uint16 currefps)
 		write_cmos_sensor(0x091c, 0x0f09);
 		write_cmos_sensor(0x091e, 0x0a00);
 	} else	{
-		LOG_INF("capture_setting fps not 300\n");
+		LOG_INF("%s fps not 300\n", __func__);
 		//Sensor Information////////////////////////////
 		//Sensor	  : Hi-556
 		//Date		  : 2016-10-19
@@ -1487,9 +1479,10 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 		do {
 			*sensor_id = return_sensor_id();
 			if (*sensor_id == imgsensor_info.sensor_id) {
-			LOG_INF("i2c write id : 0x%x, sensor id: 0x%x\n",
-			imgsensor.i2c_write_id, *sensor_id);
-			return ERROR_NONE;
+				LOG_INF(
+					"i2c write id : 0x%x, sensor id: 0x%x\n",
+					imgsensor.i2c_write_id, *sensor_id);
+				return ERROR_NONE;
 			}
 
 			retry--;
@@ -1527,7 +1520,7 @@ static kal_uint32 open(void)
 	kal_uint8 retry = 2;
 	kal_uint16 sensor_id = 0;
 
-	LOG_INF("[open]: PLATFORM:MT6737,MIPI 24LANE\n");
+	LOG_INF("[%s]: PLATFORM:MT6737,MIPI 24LANE\n", __func__);
 	LOG_INF("preview 1296*972@30fps,360Mbps/lane;"
 		"capture 2592*1944@30fps,880Mbps/lane\n");
 	while (imgsensor_info.i2c_addr_table[i] != 0xff) {
@@ -1550,7 +1543,7 @@ static kal_uint32 open(void)
 		retry = 2;
 	}
 	if (imgsensor_info.sensor_id != sensor_id) {
-		LOG_INF("open sensor id fail: 0x%x\n", sensor_id);
+		LOG_INF("%s sensor id fail: 0x%x\n", __func__, sensor_id);
 		return ERROR_SENSOR_CONNECT_FAIL;
 	}
 	/* initail sequence write in  */
@@ -1961,22 +1954,26 @@ static kal_uint32 set_max_framerate_by_scenario(
 	break;
 	case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
 		if (imgsensor.current_fps ==
-				imgsensor_info.cap1.max_framerate) {
-		frame_length = imgsensor_info.cap1.pclk / framerate * 10 /
+		    imgsensor_info.cap1.max_framerate) {
+			frame_length = imgsensor_info.cap1.pclk /
+				framerate * 10 /
 				imgsensor_info.cap1.linelength;
-		spin_lock(&imgsensor_drv_lock);
-		imgsensor.dummy_line = (frame_length >
-			imgsensor_info.cap1.framelength) ?
-			(frame_length - imgsensor_info.cap1.framelength) : 0;
-		imgsensor.frame_length = imgsensor_info.cap1.framelength +
-				imgsensor.dummy_line;
-		imgsensor.min_frame_length = imgsensor.frame_length;
-		spin_unlock(&imgsensor_drv_lock);
+			spin_lock(&imgsensor_drv_lock);
+			imgsensor.dummy_line = (frame_length >
+				imgsensor_info.cap1.framelength) ?
+				(frame_length - imgsensor_info.cap1.framelength)
+				: 0;
+			imgsensor.frame_length = imgsensor_info.cap1.framelength
+				+ imgsensor.dummy_line;
+			imgsensor.min_frame_length = imgsensor.frame_length;
+			spin_unlock(&imgsensor_drv_lock);
 		} else {
 			if (imgsensor.current_fps !=
-				imgsensor_info.cap.max_framerate)
-			LOG_INF("fps %d fps not support,use cap: %d fps!\n",
-			framerate, imgsensor_info.cap.max_framerate/10);
+			    imgsensor_info.cap.max_framerate)
+				LOG_INF(
+					"fps %d fps not support,use cap: %d fps!\n",
+					framerate,
+					imgsensor_info.cap.max_framerate / 10);
 			frame_length = imgsensor_info.cap.pclk /
 				framerate * 10 / imgsensor_info.cap.linelength;
 			spin_lock(&imgsensor_drv_lock);
@@ -2073,7 +2070,7 @@ static kal_uint32 get_default_framerate_by_scenario(
 
 static kal_uint32 set_test_pattern_mode(kal_bool enable)
 {
-	LOG_INF("set_test_pattern_mode enable: %d", enable);
+	LOG_INF("%s enable: %d", __func__, enable);
 
 	if (enable) {
 // 0x5E00[8]: 1 enable,  0 disable

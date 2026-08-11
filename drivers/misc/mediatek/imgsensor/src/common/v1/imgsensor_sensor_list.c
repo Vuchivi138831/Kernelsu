@@ -1,15 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (c) 2019 MediaTek Inc.
  * Copyright (C) 2021 XiaoMi, Inc.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
 
 #include "kd_imgsensor.h"
@@ -44,6 +36,11 @@ struct IMGSENSOR_INIT_FUNC_LIST kdSensorList[MAX_NUM_OF_SUPPORT_SENSOR] = {
         {HYNIX_HI1337_IIII_SENSOR_ID,
         SENSOR_DRVNAME_HYNIX_HI1337_IIII,
         HYNIX_HI1337_IIII_SensorInit},
+#endif
+#if defined(HYNIX_HI556_I)
+        {HYNIX_HI556_I_SENSOR_ID,
+        SENSOR_DRVNAME_HYNIX_HI556_I,
+        HYNIX_HI556_I_SensorInit},
 #endif
 #if defined(GC_GC5035_I)
         {GC_GC5035_I_SENSOR_ID,

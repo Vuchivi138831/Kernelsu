@@ -18,7 +18,7 @@
 //#include "hi1336_mipi_raw_Sensor.h"
 
 #define PFX "HI1336_pdafotp"
-#define LOG_INF(format, args...)	pr_debug(PFX "[%s] " format, __FUNCTION__, ##args)
+#define LOG_INF(format, args...)	no_printk(PFX "[%s] " format, __FUNCTION__, ##args)
 
 //#include "kd_camera_hw.h"
 #include "kd_imgsensor.h"

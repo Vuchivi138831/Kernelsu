@@ -27,7 +27,7 @@
 
 #define PFX "ov02b_camera_sensor"
 #define LOG_INF(format, args...)    \
-	pr_debug(PFX "[%s] " format, __func__, ##args)
+	no_printk(PFX "[%s] " format, __func__, ##args)
 
 /* Camera Hardwareinfo */
 //extern struct global_otp_struct hw_info_main2_otp;

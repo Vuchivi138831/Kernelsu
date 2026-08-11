@@ -1,14 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
- * Copyright (C) 2015 MediaTek Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
+ * Copyright (c) 2019 MediaTek Inc.
  */
 
 #ifndef __KD_SENSORLIST_H__
@@ -26,6 +18,7 @@ struct IMGSENSOR_INIT_FUNC_LIST {
 /*IMX*/
 UINT32 IMX586_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 IMX519_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
+UINT32 IMX499_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 IMX576_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 IMX350_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 IMX398_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
@@ -52,8 +45,9 @@ UINT32 IMX258_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 IMX258_MIPI_MONO_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 /*OV*/
 UINT32 OV16880MIPISensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
-UINT32 OV16885_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 OV16825MIPISensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
+UINT32 OV13855_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
+UINT32 OV13855MAIN2_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 OV13850_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 OV12830_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 OV9760MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
@@ -93,6 +87,8 @@ UINT32 OV2650SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 OV23850_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 OV20880_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 /*S5K*/
+UINT32 S5K2LQSX_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
+UINT32 S5K4H7_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 S5K2T7SP_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 S5K3P8SP_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 S5K3P8SX_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
@@ -119,7 +115,6 @@ UINT32 S5K4ECGX_MIPI_JPG_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 S5K8AAYX_MIPI_YUV_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 S5K8AAYX_PVI_YUV_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 S5K5E8YX_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
-UINT32 S5K5E9_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 /*HI*/
 UINT32 HI841_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 HI707_YUV_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
