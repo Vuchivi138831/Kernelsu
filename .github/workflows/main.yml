@@ -99,7 +99,7 @@ jobs:
         mkdir -p out
 
         # 1. Tạo file cấu hình từ defconfig mặc định
-        make O=out defconfig
+        make O=out dandelion_defconfig
 
         # 2. ÉP BUỘC ghi đè chuỗi LOCALVERSION bất kể cấu hình cũ và tắt AUTO_LOCALVERSION
         chmod +x scripts/config
