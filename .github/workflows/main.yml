@@ -98,6 +98,7 @@ jobs:
         export CLANG_TRIPLE=aarch64-linux-gnu-
         
         export HOSTCFLAGS="-fcommon"
+        export KCFLAGS="-Wno-ignored-qualifiers"
         mkdir -p out
 
         make O=out dandelion_defconfig
@@ -110,6 +111,7 @@ jobs:
           CLANG_TRIPLE=aarch64-linux-gnu- \
           CROSS_COMPILE=aarch64-linux-gnu- \
           HOSTCFLAGS="-fcommon" \
+          KCFLAGS="-Wno-ignored-qualifiers" \
           LOCALVERSION="-perf-gd6489126e4e3" \
           EXTRAVERSION=""
 
@@ -129,3 +131,4 @@ jobs:
       with:
         name: Kernel-KSU.zip
         path: out/arch/arm64/boot/Image
+        
