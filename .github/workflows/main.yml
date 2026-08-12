@@ -1,11 +1,7 @@
-name: Build Redmi 9A KSU
+name: Build kernel có dung lượng nhỏ nhất
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: write
-  actions: write
 
 jobs:
   # ========================================================
@@ -54,9 +50,10 @@ jobs:
     - name: Install Build Essentials
       run: |
         sudo apt update
+        # Cài đặt các thư viện hệ thống và Toolchain 64-bit tiêu chuẩn
         sudo apt install -y git bc bison flex libssl-dev make \
         libc6-dev libncurses5-dev gcc-aarch64-linux-gnu \
-        gcc-arm-linux-gnueabi curl build-essential wget zip unzip
+        curl build-essential wget zip unzip
 
     - name: Lấy Cache Python2 đã lưu từ Job trước
       id: load-python2-cache
@@ -75,6 +72,11 @@ jobs:
         sudo ln -sf /home/runner/python2_install/bin/python2.7 /usr/bin/python2
         python --version
 
+    - name: Cấu hình biến môi trường PATH
+      run: |
+        echo "$GITHUB_WORKSPACE/toolchains/clang/bin" >> $GITHUB_PATH
+        echo "/home/runner/python2_install/bin" >> $GITHUB_PATH
+
     - name: Compile Kernel Siêu Tối Giản
       run: |
         if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
@@ -86,62 +88,44 @@ jobs:
           git checkout -- drivers/char/rpmb/rpmb-mtk.c
         fi
 
+        # Nạp đường dẫn Clang và python2_install/bin vào PATH
         export PATH="$GITHUB_WORKSPACE/toolchains/clang/bin:/home/runner/python2_install/bin:$PATH"
         export ARCH=arm64
         export SUBARCH=arm64
         
         export CC=clang
         export CROSS_COMPILE=aarch64-linux-gnu-
-        export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
         export CLANG_TRIPLE=aarch64-linux-gnu-
         
-        # Cờ tối ưu dung lượng biên dịch toàn cục (-Os) & Bỏ Symbol Debug
-        export CFLAGS="-Os -fdata-sections -ffunction-sections"
-        export KCFLAGS="-Os -fdata-sections -ffunction-sections"
-        export HOSTCFLAGS="-fcommon -Os"
+        export HOSTCFLAGS="-fcommon"
         mkdir -p out
 
-        # 1. Tạo file cấu hình từ defconfig mặc định
         make O=out dandelion_defconfig
-
-        # 2. Tối ưu kích thước Kernel & Cho phép dùng `insmod -f`
-        chmod +x scripts/config
-        ./scripts/config --file out/.config --enable CC_OPTIMIZE_FOR_SIZE
-        ./scripts/config --file out/.config --disable DEBUG_INFO
-        ./scripts/config --file out/.config --disable FTRACE
-        ./scripts/config --file out/.config --enable MODULE_FORCE_LOAD
-        ./scripts/config --file out/.config --set-str LOCALVERSION "-perf-gd6489126e4e3"
-        ./scripts/config --file out/.config --disable LOCALVERSION_AUTO
-
-        # 3. Đồng bộ lại cấu hình vừa chỉnh sửa
+        # 2. Đồng bộ lại cấu hình vừa nạp
         make O=out olddefconfig
 
-        # 4. Tiến hành biên dịch với cờ nén Strip Unneeded Symbols
+        # 3. Tiến hành biên dịch và ĐẶT TÊN BIÊN DỊCH (LOCALVERSION)
         make -j$(nproc --all) O=out \
           CC=clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
           CROSS_COMPILE=aarch64-linux-gnu- \
-          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-          HOSTCFLAGS="-fcommon -Os" \
-          KCFLAGS="-Os -fdata-sections -ffunction-sections" \
-          LOCALVERSION="" \
+          HOSTCFLAGS="-fcommon" \
+          LOCALVERSION="-perf-gd6489126e4e3" \
           EXTRAVERSION=""
 
-    - name: Pack Kernel Artifacts
+    - name: Kiểm tra File Kernel Image
       if: success()
       run: |
-        cd out/arch/arm64/boot/
-        if [ -f Image.gz ]; then
-          zip -r9 Kernel-Redmi9A-KSU.zip Image.gz
+        if [ -f out/arch/arm64/boot/Image ]; then
+          echo "[+] Tìm thấy file Image nguyên bản thành công!"
         else
-          echo "Error: Image.gz not found!"
+          echo "[-] LỖI: Không tìm thấy file Image tại out/arch/arm64/boot/!"
           exit 1
         fi
 
-    - name: Upload Kernel Zip
+    - name: Upload Kernel File
       if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: Kernel-Redmi9A-KSU-Zip
-        path: out/arch/arm64/boot/Kernel-Redmi9A-KSU.zip
-        
+        name: Kernel-KSU.zip
+        path: out/arch/arm64/boot/Image
