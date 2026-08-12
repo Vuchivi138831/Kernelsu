@@ -1,39 +1,49 @@
-name: Extract Imgsensor and Push
+name: Unzip Camera Drivers
 
 on:
-  workflow_dispatch: # Chỉ chạy thủ công từ giao diện GitHub UI
-
-permissions:
-  contents: write   # Cấp quyền ghi để push code lên repository
+  workflow_dispatch: # Chỉ chạy thủ công, không tự động
 
 jobs:
-  extract-and-push:
+  extract_and_push:
     runs-on: ubuntu-latest
+
+    # Cấp quyền ghi vào repository để thực hiện git push
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Delete old imgsensor directory
+      - name: Xóa thư mục cũ và giải nén camera.zip
         run: |
-          echo "Removing old imgsensor directory..."
-          rm -rf drivers/misc/mediatek/imgsensor
+          CD_DIR="drivers/misc/mediatek"
+          cd $CD_DIR
 
-      - name: Extract imgsensor.zip
-        run: |
-          echo "Unzipping imgsensor.zip..."
-          unzip -o drivers/misc/mediatek/imgsensor.zip -d drivers/misc/mediatek/
+          # Xóa hai thư mục cũ nếu tồn tại
+          echo "[+] Đang xóa thư mục flashlight và imgsensor cũ..."
+          rm -rf flashlight imgsensor
 
-      - name: Commit and Push changes
+          # Giải nén trực tiếp vào thư mục hiện tại (không tạo thư mục cha bao bọc)
+          echo "[+] Đang giải nén camera.zip..."
+          unzip -o camera.zip
+
+          echo "[+] Giải nén hoàn tất. Giữ nguyên file camera.zip!"
+
+      - name: Git Commit & Push
         run: |
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git add .
-          
-          if git diff-index --quiet HEAD; then
-            echo "No changes detected. Skipping commit."
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Stage toàn bộ thay đổi (các file mới giải nén và thư mục cũ đã xóa)
+          git add drivers/misc/mediatek/
+
+          # Kiểm tra xem có thay đổi nào để commit hay không
+          if git diff --staged --quiet; then
+            echo "[!] Không có thay đổi nào mới để commit."
           else
-            git commit -m "chore: remove imgsensor dir and extract imgsensor.zip"
+            git commit -m "Chore: Update flashlight & imgsensor from camera.zip"
             git push
+            echo "[+] Đã push thay đổi lên GitHub thành công!"
           fi
+          
