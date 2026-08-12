@@ -77,6 +77,12 @@ jobs:
         echo "$GITHUB_WORKSPACE/toolchains/clang/bin" >> $GITHUB_PATH
         echo "/home/runner/python2_install/bin" >> $GITHUB_PATH
 
+    - name: Patch Bỏ include EAS+ Trong fair.c
+      run: |
+        echo "[+] Bọc điều kiện CONFIG_MTK_SCHED_EAS_POWER_SUPPORT cho eas_plus..."
+        sed -i 's/#include "eas_plus.h"/#ifdef CONFIG_MTK_SCHED_EAS_POWER_SUPPORT\n#include "eas_plus.h"\n#endif/' kernel/sched/fair.c
+        sed -i 's/#include "eas_plus.c"/#ifdef CONFIG_MTK_SCHED_EAS_POWER_SUPPORT\n#include "eas_plus.c"\n#endif/' kernel/sched/fair.c
+
     - name: Compile Kernel Siêu Tối Giản
       run: |
         if [ ! -f "$GITHUB_WORKSPACE/toolchains/clang/bin/clang" ]; then
