@@ -77,10 +77,13 @@ jobs:
         echo "$GITHUB_WORKSPACE/toolchains/clang/bin" >> $GITHUB_PATH
         echo "/home/runner/python2_install/bin" >> $GITHUB_PATH
 
-    - name: Patch Sửa Lỗi LB_CPU_MASK Cho EAS+
+    - name: Patch Sửa Lỗi Biên Dịch (EAS+ & AEE)
       run: |
         echo "[+] Inject macro LB_CPU_MASK vào eas_plus.h..."
         sed -i '1i #ifndef LB_CPU_MASK\n#define LB_CPU_MASK (0xF)\n#endif' kernel/sched/eas_plus.h
+
+        echo "[+] Fix missing stack_trace header trong aed-main.c..."
+        sed -i '1i #include <linux/stacktrace.h>' drivers/misc/mediatek/aee/aed/aed-main.c
         
     - name: Compile Kernel Siêu Tối Giản
       run: |
