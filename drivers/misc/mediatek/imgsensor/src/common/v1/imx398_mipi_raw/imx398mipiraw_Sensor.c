@@ -1,6 +1,14 @@
-// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2019 MediaTek Inc.
+ * Copyright (C) 2016 MediaTek Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
 
 /*****************************************************************************
@@ -121,7 +129,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.framelength = 902,
 		.startx = 0,
 		.starty = 0,
-		.grabwindow_width = 1476,
+		.grabwindow_width = 1472,
 		.grabwindow_height = 832,
 		.mipi_data_lp2hs_settle_dc = 85,
 		.max_framerate = 1200,
@@ -133,7 +141,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.framelength = 1444,	/* 1640, */
 		.startx = 0,
 		.starty = 0,
-		.grabwindow_width = 1476,
+		.grabwindow_width = 1472,
 		.grabwindow_height = 832,
 		.mipi_data_lp2hs_settle_dc = 85,
 		.max_framerate = 300,
@@ -332,11 +340,11 @@ static struct SENSOR_WINSIZE_INFO_STRUCT imgsensor_winsize_info[10] = {
 	{4656, 3496, 0000, 0000, 4656, 3496, 4656, 3496, 0000, 0000,
 	4656, 3496, 0000, 0000, 4656, 2608},/* video */
 
-	{4656, 3496, 0000, 492, 4656, 2500, 2216, 834, 0000, 0000,
-	2216, 834, 370, 0000, 1476, 832},/* hs video */
+	{4656, 3496, 0000, 492, 4656, 2500, 2216, 832, 0000, 0000,
+	2216, 832, 370, 0000, 1472, 832},/* hs video */
 
-	{4656, 3496, 0000, 492, 4656, 2500, 2216, 834, 0000, 0000,
-	2216, 834, 370, 0000, 1476, 832},/* slim video */
+	{4656, 3496, 0000, 492, 4656, 2500, 2216, 832, 0000, 0000,
+	2216, 832, 370, 0000, 1472, 832},/* slim video */
 
 	{4656, 3496, 0000, 0000, 4656, 3496, 2328, 1748, 0000, 0000,
 		2328, 1748, 0000, 0000, 2328, 1748},/* Custom1 */

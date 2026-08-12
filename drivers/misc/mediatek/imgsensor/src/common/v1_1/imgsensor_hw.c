@@ -1,6 +1,14 @@
-// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2019 MediaTek Inc.
+ * Copyright (C) 2017 MediaTek Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
 
 #include <linux/delay.h>
@@ -22,23 +30,19 @@ enum IMGSENSOR_RETURN imgsensor_hw_init(struct IMGSENSOR_HW *phw)
 	struct device_node *of_node
 		= of_find_compatible_node(NULL, NULL, "mediatek,imgsensor");
 
-	mutex_init(&phw->common.pinctrl_mutex);
-
 	for (i = 0; i < IMGSENSOR_HW_ID_MAX_NUM; i++) {
 		if (hw_open[i] != NULL)
 			(hw_open[i]) (&phw->pdev[i]);
 
 		if (phw->pdev[i]->init != NULL)
-			(phw->pdev[i]->init)(
-				phw->pdev[i]->pinstance, &phw->common);
+		(phw->pdev[i]->init) (phw->pdev[i]->pinstance, &phw->common);
 	}
 
 	for (i = 0; i < IMGSENSOR_SENSOR_IDX_MAX_NUM; i++) {
 		psensor_pwr = &phw->sensor_pwr[i];
 
 		pcust_pwr_cfg = imgsensor_custom_config;
-		while (pcust_pwr_cfg->sensor_idx != i &&
-		       pcust_pwr_cfg->sensor_idx != IMGSENSOR_SENSOR_IDX_NONE)
+		while (pcust_pwr_cfg->sensor_idx != i)
 			pcust_pwr_cfg++;
 
 		if (pcust_pwr_cfg->sensor_idx == IMGSENSOR_SENSOR_IDX_NONE)
@@ -56,6 +60,8 @@ enum IMGSENSOR_RETURN imgsensor_hw_init(struct IMGSENSOR_HW *phw)
 			ppwr_info++;
 		}
 	}
+
+	mutex_init(&phw->common.pinctrl_mutex);
 
 	for (i = 0; i < IMGSENSOR_SENSOR_IDX_MAX_NUM; i++) {
 		memset(str_prop_name, 0, sizeof(str_prop_name));
@@ -101,13 +107,6 @@ static enum IMGSENSOR_RETURN imgsensor_hw_power_sequence(
 	int                               pin_cnt = 0;
 
 	static DEFINE_RATELIMIT_STATE(ratelimit, 1 * HZ, 30);
-
-#ifdef CONFIG_FPGA_EARLY_PORTING  /*for FPGA*/
-	if (1) {
-		PK_DBG("FPGA return true for power control\n");
-		return IMGSENSOR_RETURN_SUCCESS;
-	}
-#endif
 
 	while (ppwr_seq < ppower_sequence + IMGSENSOR_HW_SENSOR_MAX_NUM &&
 		ppwr_seq->name != NULL) {
@@ -191,27 +190,21 @@ enum IMGSENSOR_RETURN imgsensor_hw_power(
 	enum IMGSENSOR_SENSOR_IDX sensor_idx = psensor->inst.sensor_idx;
 	char *curr_sensor_name = psensor->inst.psensor_list->name;
 	char str_index[LENGTH_FOR_SNPRINTF];
-	int ret = 0;
 
 	PK_DBG("sensor_idx %d, power %d curr_sensor_name %s, enable list %s\n",
 		sensor_idx,
 		pwr_status,
 		curr_sensor_name,
-		phw->enable_sensor_by_index[(uint32_t)sensor_idx] == NULL
+		phw->enable_sensor_by_index[sensor_idx] == NULL
 		? "NULL"
-		: phw->enable_sensor_by_index[(uint32_t)sensor_idx]);
+		: phw->enable_sensor_by_index[sensor_idx]);
 
-	if (phw->enable_sensor_by_index[(uint32_t)sensor_idx] &&
-	!strstr(phw->enable_sensor_by_index[(uint32_t)sensor_idx], curr_sensor_name))
+	if (phw->enable_sensor_by_index[sensor_idx] &&
+	!strstr(phw->enable_sensor_by_index[sensor_idx], curr_sensor_name))
 		return IMGSENSOR_RETURN_ERROR;
 
 
-	ret = snprintf(str_index, sizeof(str_index), "%d", sensor_idx);
-	if (ret == 0) {
-		pr_info("Error! snprintf allocate 0");
-		ret = IMGSENSOR_RETURN_ERROR;
-		return ret;
-	}
+	snprintf(str_index, sizeof(str_index), "%d", sensor_idx);
 	imgsensor_hw_power_sequence(
 			phw,
 			sensor_idx,

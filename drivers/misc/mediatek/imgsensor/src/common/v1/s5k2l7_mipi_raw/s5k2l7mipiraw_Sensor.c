@@ -1,6 +1,14 @@
-// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2019 MediaTek Inc.
+ * Copyright (C) 2015 MediaTek Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
  */
 
 /*****************************************************************************
@@ -1389,7 +1397,7 @@ static kal_uint32 close(void)
 	pr_debug("E\n");
 
 	/*No Need to implement this function */
-	write_cmos_sensor(0x0100, 0x00);
+
 	return ERROR_NONE;
 }				/*    close  */
 
@@ -1880,43 +1888,37 @@ static kal_uint32 set_max_framerate_by_scenario(
 
 	case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
 
-		if (imgsensor.current_fps ==
-		    imgsensor_info.cap1.max_framerate) {
-			frame_length = imgsensor_info.cap1.pclk / framerate * 10
-				/ imgsensor_info.cap1.linelength;
+	if (imgsensor.current_fps == imgsensor_info.cap1.max_framerate) {
+		frame_length = imgsensor_info.cap1.pclk
+			    / framerate * 10 / imgsensor_info.cap1.linelength;
 
 			spin_lock(&imgsensor_drv_lock);
 			imgsensor.dummy_line =
-			  (frame_length > imgsensor_info.cap1.framelength)
-			  ? (frame_length - imgsensor_info.cap1.framelength)
-			  : 0;
+			   (frame_length > imgsensor_info.cap1.framelength)
+			 ? (frame_length - imgsensor_info.cap1.framelength) : 0;
 
 			imgsensor.frame_length =
-				imgsensor_info.cap1.framelength
-				+ imgsensor.dummy_line;
+			 imgsensor_info.cap1.framelength + imgsensor.dummy_line;
 
 			imgsensor.min_frame_length = imgsensor.frame_length;
 			spin_unlock(&imgsensor_drv_lock);
 		} else {
 
-			if (imgsensor.current_fps !=
-			    imgsensor_info.cap.max_framerate)
-				pr_debug(
-				  "Warning: current_fps %d fps is not support, so use cap's setting: %d fps!\n",
-				  framerate,
-				  imgsensor_info.cap.max_framerate / 10);
+	if (imgsensor.current_fps != imgsensor_info.cap.max_framerate)
+		pr_debug(
+	    "Warning: current_fps %d fps is not support, so use cap's setting: %d fps!\n",
+	    framerate, imgsensor_info.cap.max_framerate / 10);
 
-			frame_length = imgsensor_info.cap.pclk / framerate * 10
-				/ imgsensor_info.cap.linelength;
+			frame_length = imgsensor_info.cap.pclk
+			    / framerate * 10 / imgsensor_info.cap.linelength;
 
 			spin_lock(&imgsensor_drv_lock);
 			imgsensor.dummy_line =
-			  (frame_length > imgsensor_info.cap.framelength)
+			    (frame_length > imgsensor_info.cap.framelength)
 			  ? (frame_length - imgsensor_info.cap.framelength) : 0;
 
 			imgsensor.frame_length =
-				imgsensor_info.cap.framelength
-				+ imgsensor.dummy_line;
+			  imgsensor_info.cap.framelength + imgsensor.dummy_line;
 
 			imgsensor.min_frame_length = imgsensor.frame_length;
 			spin_unlock(&imgsensor_drv_lock);
@@ -2420,11 +2422,11 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 		switch (*feature_data) {
 		case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
 			if (fps == 240)
-				*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
-					imgsensor_info.cap1.mipi_pixel_rate;
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+				imgsensor_info.cap1.mipi_pixel_rate;
 			else
-				*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
-					imgsensor_info.cap.mipi_pixel_rate;
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+				imgsensor_info.cap.mipi_pixel_rate;
 			break;
 		case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
 			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =

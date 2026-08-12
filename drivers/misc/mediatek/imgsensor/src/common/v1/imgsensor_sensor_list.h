@@ -1,7 +1,15 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
- * Copyright (c) 2019 MediaTek Inc.
+ * Copyright (C) 2015 MediaTek Inc.
  * Copyright (C) 2021 XiaoMi, Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
  */
 
 #ifndef __KD_SENSORLIST_H__
@@ -28,7 +36,6 @@ UINT32 HYNIX_HI259_I_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 HYNIX_HI259_II_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 HYNIX_HI259_III_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 HYNIX_HI259_IV_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
-UINT32 HYNIX_HI556_I_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 GC_GC5035_I_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 GC_GC5035_II_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);
 UINT32 GC_GC5035_III_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc);

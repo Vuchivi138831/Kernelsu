@@ -1,6 +1,15 @@
-// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2019 MediaTek Inc.
+ * Copyright (C) 2017 MediaTek Inc.
+ * Copyright (C) 2021 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
 
 #include "imgsensor_sensor.h"
@@ -47,8 +56,7 @@ enum IMGSENSOR_RETURN imgsensor_hw_init(struct IMGSENSOR_HW *phw)
 		psensor_pwr = &phw->sensor_pwr[i];
 
 		pcust_pwr_cfg = imgsensor_custom_config;
-		while (pcust_pwr_cfg->sensor_idx != i &&
-		       pcust_pwr_cfg->sensor_idx != IMGSENSOR_SENSOR_IDX_NONE)
+		while (pcust_pwr_cfg->sensor_idx != i)
 			pcust_pwr_cfg++;
 
 		if (pcust_pwr_cfg->sensor_idx == IMGSENSOR_SENSOR_IDX_NONE)
@@ -76,7 +84,7 @@ enum IMGSENSOR_RETURN imgsensor_hw_init(struct IMGSENSOR_HW *phw)
 			of_node,
 			str_prop_name,
 			&phw->enable_sensor_by_index[i]) < 0) {
-			no_printk("Property cust-sensor not defined\n");
+			pr_debug("Property cust-sensor not defined\n");
 			phw->enable_sensor_by_index[i] = NULL;
 		}
 	}
@@ -121,14 +129,15 @@ static enum IMGSENSOR_RETURN imgsensor_hw_power_sequence(
 		if (pwr_status == IMGSENSOR_HW_POWER_STATUS_ON &&
 		   ppwr_info->pin != IMGSENSOR_HW_PIN_UNDEF) {
 			pdev = phw->pdev[psensor_pwr->id[ppwr_info->pin]];
-		/*no_printk(
-		 *  "sensor_idx = %d, pin=%d, pin_state_on=%d, hw_id =%d\n",
-		 *  sensor_idx,
-		 *  ppwr_info->pin,
-		 *  ppwr_info->pin_state_on,
-		 * psensor_pwr->id[ppwr_info->pin]);
-		 */
-
+/*
+        pr_debug("litao curr_sensor_name %s,ppwr_seq->name %s  psensor_idx = %d, pin=%d, pin_state_on=%d, hw_id =%d\n",
+        pcurr_idx,
+        ppwr_seq->name,
+        sensor_idx,
+        ppwr_info->pin,
+        ppwr_info->pin_state_on,
+        psensor_pwr->id[ppwr_info->pin]); 
+*/
 			if (pdev->set != NULL)
 				pdev->set(
 				    pdev->pinstance,
@@ -177,28 +186,22 @@ enum IMGSENSOR_RETURN imgsensor_hw_power(
 {
 	enum IMGSENSOR_SENSOR_IDX sensor_idx = psensor->inst.sensor_idx;
 	char str_index[LENGTH_FOR_SNPRINTF];
-	int ret = 0;
 
-	no_printk(
+	pr_debug(
 		"sensor_idx %d, power %d curr_sensor_name %s, enable list %s\n",
 		sensor_idx,
 		pwr_status,
 		curr_sensor_name,
-		phw->enable_sensor_by_index[(uint32_t)sensor_idx] == NULL
+		phw->enable_sensor_by_index[sensor_idx] == NULL
 		? "NULL"
-		: phw->enable_sensor_by_index[(uint32_t)sensor_idx]);
+		: phw->enable_sensor_by_index[sensor_idx]);
 
-	if (phw->enable_sensor_by_index[(uint32_t)sensor_idx] &&
-	!strstr(phw->enable_sensor_by_index[(uint32_t)sensor_idx], curr_sensor_name))
+	if (phw->enable_sensor_by_index[sensor_idx] &&
+	!strstr(phw->enable_sensor_by_index[sensor_idx], curr_sensor_name))
 		return IMGSENSOR_RETURN_ERROR;
 
 
-	ret = snprintf(str_index, sizeof(str_index), "%d", sensor_idx);
-	if (ret == 0) {
-		no_printk("Error! snprintf allocate 0");
-		ret = IMGSENSOR_RETURN_ERROR;
-		return ret;
-	}
+	snprintf(str_index, sizeof(str_index), "%d", sensor_idx);
 	imgsensor_hw_power_sequence(
 	    phw,
 	    sensor_idx,

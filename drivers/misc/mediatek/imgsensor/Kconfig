@@ -1,10 +1,13 @@
 config MTK_IMGSENSOR
-	bool "Camera Imgsensor Driver Support"
-
+	bool CONFIG_MTK_IMGSENSOR
+	default n
 	help
-	  Kernel space image sensor driver. Define  project used all image
-	  sensors .The value is combination of CUSTOM_KERNEL_MAIN_IMGSENSOR,
-	  CUSTOM_KERNEL_MAIN_BACKUP_IMGSENSOR, CUSTOM_KERNEL_SUB_IMGSENSOR,
-	  and CUSTOM_KERNEL_SUB_BACKUP_IMGSENSOR
+	  CONFIG_MTK_IMGSENSOR
+
+config MTK_CAMERA_VCAMIO_ON
+	bool "MTK camera vcamio on"
+	default n
+	help
+	  Set Y to enable vcamio on
 
 source "drivers/misc/mediatek/imgsensor/src/Kconfig"

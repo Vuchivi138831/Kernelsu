@@ -40,9 +40,8 @@
 #define LOG_1 LOG_INF("GC02M1, MIPI 1LANE\n")
 /****************************   Modify end    *******************************************/
 
-/*#define LOG_INF(format, args...)    \
-	no_printk(PFX "[%s] " format, __func__, ##args) */
-#define LOG_INF(format, args...)
+#define LOG_INF(format, args...)    pr_debug(PFX "[%s] " format, __func__, ##args)
+
 #define MULTI_WRITE    1
 
 
@@ -366,7 +365,7 @@ static void set_shutter_frame_length(
 	write_cmos_sensor(0x03, (shutter >> 8) & 0x3f);
 	write_cmos_sensor(0x04, shutter  & 0xff);
 
-	no_printk("Exit! shutter =%d, framelength =%d/%d, auto_extend=%d\n",
+	pr_debug("Exit! shutter =%d, framelength =%d/%d, auto_extend=%d\n",
 		shutter, imgsensor.frame_length,
 		frame_length, read_cmos_sensor(0x0350));
 
@@ -870,7 +869,7 @@ static kal_uint32 close(void)
 static kal_uint32 preview(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 	MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
-    no_printk("[gc02m1] preview mode start\n");
+    pr_debug("[gc02m1] preview mode start\n");
 	spin_lock(&imgsensor_drv_lock);
 	imgsensor.sensor_mode = IMGSENSOR_MODE_PREVIEW;
 	imgsensor.pclk = imgsensor_info.pre.pclk;
@@ -887,7 +886,7 @@ static kal_uint32 preview(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 static kal_uint32 capture(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 	MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
-    no_printk("[gc02m1] capture mode start\n");
+    pr_debug("[gc02m1] capture mode start\n");
 	spin_lock(&imgsensor_drv_lock);
 	imgsensor.sensor_mode = IMGSENSOR_MODE_CAPTURE;
 	if (imgsensor.current_fps == imgsensor_info.cap1.max_framerate) {
@@ -964,7 +963,7 @@ static kal_uint32 slim_video(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 static kal_uint32 custom1(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 	MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
-	no_printk("[gc02m1] custom1 mode start\n");
+	pr_debug("[gc02m1] custom1 mode start\n");
 	spin_lock(&imgsensor_drv_lock);
 	imgsensor.sensor_mode = IMGSENSOR_MODE_CUSTOM1;
 	imgsensor.pclk = imgsensor_info.custom1.pclk;

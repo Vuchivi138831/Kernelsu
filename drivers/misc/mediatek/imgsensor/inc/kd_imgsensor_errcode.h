@@ -1,6 +1,14 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
- * Copyright (c) 2019 MediaTek Inc.
+ * Copyright (C) 2015 MediaTek Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
  */
 
 #ifndef _KD_IMGSENSOR_ERRCODE_H_
@@ -9,7 +17,7 @@
 /* @ the same as camera_custom_errocode.h */
 enum CUSTOM_CAMERA_ERROR_CODE_ENUM {
 	ERROR_NONE = 0,
-	ERROR_MSDK_IS_ACTIVATED,
+	ERROR_MSDK_IS_ACTIVED,
 	ERROR_INVALID_DRIVER_MOD_ID,
 	ERROR_INVALID_FEATURE_ID,
 	ERROR_INVALID_SCENARIO_ID,
@@ -39,9 +47,6 @@ enum CUSTOM_CAMERA_ERROR_CODE_ENUM {
 	ERROR_FLASH_LIGHT_NOT_SUPPORT,
 	ERROR_FACE_DETECTION_NOT_SUPPORT,
 	ERROR_PANORAMA_NOT_SUPPORT,
-	ERROR_TEE_CA_TA_FAIL,
-	ERROR_TEE_CA_TA_SECURE_CHECK_FAIL,
-	ERROR_TEE_SET_SENSOR_PFUNC_FAIL,
 	ERROR_MAX
 };
 

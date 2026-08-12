@@ -1,8 +1,15 @@
-// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2019 MediaTek Inc.
+ * Copyright (C) 2016 MediaTek Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
-
 /*****************************************************************************
  *
  * Filename:
@@ -545,7 +552,7 @@ static void set_shutter_frame_length(
 		}
 	} else {
 		/* Extend frame length*/
-		write_cmos_sensor(0x0340, imgsensor.frame_length);
+		 write_cmos_sensor(0x0340, imgsensor.frame_length);
 	}
 	/* Update Shutter*/
 	write_cmos_sensor_8(0x0104, 0x01);
@@ -1455,6 +1462,7 @@ static void capture_setting(kal_uint16 currefps)
 		write_cmos_sensor(0x3056, 0x0100);
 	}
 	write_cmos_sensor_8(0x0B0E, 0x01);
+	write_cmos_sensor_8(0x0100, 0x01);
 }
 
 kal_uint16 addr_data_pair_normal_video_s5k2p7[] = {
@@ -2708,14 +2716,14 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 		switch (*feature_data) {
 		case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
 			if (fps == 240)
-				*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
-					imgsensor_info.cap1.mipi_pixel_rate;
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+				imgsensor_info.cap1.mipi_pixel_rate;
 			else if (fps == 150)
-				*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
-					imgsensor_info.cap2.mipi_pixel_rate;
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+				imgsensor_info.cap2.mipi_pixel_rate;
 			else
-				*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
-					imgsensor_info.cap.mipi_pixel_rate;
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+				imgsensor_info.cap.mipi_pixel_rate;
 			break;
 		case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
 			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =

@@ -1,8 +1,15 @@
-// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2019 MediaTek Inc.
+ * Copyright (C) 2016 MediaTek Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
-
 #define PFX "s5k4e6_camera_sensor"
 #define pr_fmt(fmt) PFX "[%s] " fmt, __func__
 
@@ -2372,26 +2379,23 @@ static kal_uint32 set_max_framerate_by_scenario(
 
 		} else {
 
-			if (imgsensor.current_fps !=
-			    imgsensor_info.cap.max_framerate)
-				pr_debug(
-				"Warning: current_fps %d fps is not support",
-				framerate);
+	if (imgsensor.current_fps != imgsensor_info.cap.max_framerate)
 
-			pr_debug("so use cap's setting: %d fps!\n",
-				 imgsensor_info.cap.max_framerate / 10);
+		pr_debug("Warning: current_fps %d fps is not support,"
+		, framerate);
+		pr_debug("so use cap's setting: %d fps!\n",
+		imgsensor_info.cap.max_framerate / 10);
 
-			frame_length = imgsensor_info.cap.pclk / framerate * 10
-				/ imgsensor_info.cap.linelength;
+		frame_length = imgsensor_info.cap.pclk
+			/ framerate * 10 / imgsensor_info.cap.linelength;
 
 			spin_lock(&imgsensor_drv_lock);
 			imgsensor.dummy_line =
 			(frame_length > imgsensor_info.cap.framelength)
-			? (frame_length - imgsensor_info.cap.framelength) : 0;
+		      ? (frame_length - imgsensor_info.cap.framelength) : 0;
 
 			imgsensor.frame_length =
-				imgsensor_info.cap.framelength
-				+ imgsensor.dummy_line;
+			imgsensor_info.cap.framelength + imgsensor.dummy_line;
 			imgsensor.min_frame_length = imgsensor.frame_length;
 			spin_unlock(&imgsensor_drv_lock);
 		}
@@ -2582,7 +2586,7 @@ pr_debug("feature_Control imgsensor.pclk = %d,imgsensor.current_fps = %d\n",
 		break;
 	case SENSOR_FEATURE_SET_AUTO_FLICKER_MODE:
 		set_auto_flicker_mode(
-					(BOOL) (*feature_data_16),
+					(BOOL) * feature_data_16,
 					*(feature_data_16 + 1));
 		break;
 	case SENSOR_FEATURE_SET_MAX_FRAME_RATE_BY_SCENARIO:
@@ -2602,7 +2606,7 @@ pr_debug("feature_Control imgsensor.pclk = %d,imgsensor.current_fps = %d\n",
 		break;
 
 	case SENSOR_FEATURE_SET_TEST_PATTERN:
-		set_test_pattern_mode((BOOL) (*feature_data));
+		set_test_pattern_mode((BOOL) * feature_data);
 		break;
 
 		/* for factory mode auto testing */
@@ -2688,7 +2692,7 @@ pr_debug("feature_Control imgsensor.pclk = %d,imgsensor.current_fps = %d\n",
 			*feature_data);
 
 		if (*feature_data != 0)
-			set_shutter(*feature_data);
+		set_shutter(*feature_data);
 		streaming_control(KAL_TRUE);
 		break;
 

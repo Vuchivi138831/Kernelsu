@@ -1,6 +1,14 @@
-// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2019 MediaTek Inc.
+ * Copyright (C) 2015 MediaTek Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
  */
 
 /*****************************************************************************
@@ -328,9 +336,9 @@ static void set_max_framerate(UINT16 framerate, kal_bool min_framelength_en)
 		imgsensor.min_frame_length;
 
 	if (imgsensor.frame_length > imgsensor_info.max_frame_length) {
-		imgsensor.frame_length = imgsensor_info.max_frame_length;
-		imgsensor.dummy_line = imgsensor.frame_length -
-			imgsensor.min_frame_length;
+	imgsensor.frame_length = imgsensor_info.max_frame_length;
+	imgsensor.dummy_line = imgsensor.frame_length -
+		imgsensor.min_frame_length;
 	}
 	if (min_framelength_en)
 		imgsensor.min_frame_length = imgsensor.frame_length;
@@ -345,12 +353,12 @@ static void write_shutter(kal_uint16 shutter)
 
 	spin_lock(&imgsensor_drv_lock);
 	if (shutter > imgsensor.min_frame_length - imgsensor_info.margin)
-		imgsensor.frame_length = shutter + imgsensor_info.margin;
+	imgsensor.frame_length = shutter + imgsensor_info.margin;
 	else
-		imgsensor.frame_length = imgsensor.min_frame_length;
+	imgsensor.frame_length = imgsensor.min_frame_length;
 
 	if (imgsensor.frame_length > imgsensor_info.max_frame_length)
-		imgsensor.frame_length = imgsensor_info.max_frame_length;
+	imgsensor.frame_length = imgsensor_info.max_frame_length;
 	spin_unlock(&imgsensor_drv_lock);
 
 	shutter =
@@ -430,7 +438,7 @@ static kal_uint32 get_sensor_temperature(void)
 
 static kal_uint32 streaming_control(kal_bool enable)
 {
-	LOG_INF("%s enable =%d\n", __func__, enable);
+	LOG_INF("streaming_control enable =%d\n", enable);
 	if (enable)
 		write_cmos_sensor(0x0100, 0x01);
 	else
@@ -480,19 +488,17 @@ static void set_shutter_frame_length(kal_uint16 shutter,
 			imgsensor.line_length * 10 / imgsensor.frame_length;
 		if (realtime_fps >= 297 && realtime_fps <= 305) {
 			realtime_fps = 296;
-			set_max_framerate(realtime_fps, 0);
+	    set_max_framerate(realtime_fps, 0);
 		} else if (realtime_fps >= 147 && realtime_fps <= 150) {
 			realtime_fps = 146;
-			set_max_framerate(realtime_fps, 0);
+	    set_max_framerate(realtime_fps, 0);
 		} else {
-			imgsensor.frame_length =
-				(imgsensor.frame_length  >> 1) << 1;
-			write_cmos_sensor(0x380e, imgsensor.frame_length >> 8);
-			write_cmos_sensor(0x380f,
-					  imgsensor.frame_length & 0xFF);
+		imgsensor.frame_length = (imgsensor.frame_length  >> 1) << 1;
+	    write_cmos_sensor(0x380e, imgsensor.frame_length >> 8);
+	    write_cmos_sensor(0x380f, imgsensor.frame_length & 0xFF);
 		}
 	} else {
-		imgsensor.frame_length = (imgsensor.frame_length  >> 1) << 1;
+	imgsensor.frame_length = (imgsensor.frame_length  >> 1) << 1;
 
 		write_cmos_sensor(0x380e, imgsensor.frame_length >> 8);
 		write_cmos_sensor(0x380f, imgsensor.frame_length & 0xFF);
@@ -724,13 +730,13 @@ kal_uint16 addr_data_pair_init_ov12a10[] = {
 static void sensor_init(void) //check out
 {
 #if MULTI_WRITE
-	LOG_INF("%s init_setting MULTI_WRITE\n", __func__);
+	LOG_INF("sensor_init init_setting MULTI_WRITE\n");
 	ov12a10_table_write_cmos_sensor(
 		addr_data_pair_init_ov12a10,
 		sizeof(addr_data_pair_init_ov12a10) /
 		sizeof(kal_uint16));
 #else
-	LOG_INF("%s init_setting\n", __func__);
+	LOG_INF("sensor_init init_setting\n");
 
 	write_cmos_sensor(0x0103, 0x01);
 	write_cmos_sensor(0x0302, 0x49);
@@ -954,7 +960,7 @@ kal_uint16 addr_data_pair_preview_ov12a10[] = {
 
 static void preview_setting(void)//jack yan check
 {
-	LOG_INF("%s RES_2048*1536_30fps\n", __func__);
+	LOG_INF("preview_setting RES_2048*1536_30fps\n");
 #if MULTI_WRITE
 	ov12a10_table_write_cmos_sensor(
 		addr_data_pair_preview_ov12a10,
@@ -1169,69 +1175,69 @@ static void capture_setting(kal_uint16 currefps)//jack yan check
 		currefps);
 #if MULTI_WRITE
 	if (currefps == 150) {
-		ov12a10_table_write_cmos_sensor(
-			addr_data_pair_capture_15fps_ov12a10,
-			sizeof(addr_data_pair_capture_15fps_ov12a10) /
-			sizeof(kal_uint16));
+	ov12a10_table_write_cmos_sensor(
+		addr_data_pair_capture_15fps_ov12a10,
+		sizeof(addr_data_pair_capture_15fps_ov12a10) /
+		sizeof(kal_uint16));
 	} else if (currefps == 240) {
-		ov12a10_table_write_cmos_sensor(
-			addr_data_pair_capture_24fps_ov12a10,
-			sizeof(addr_data_pair_capture_24fps_ov12a10) /
-			sizeof(kal_uint16));
+	ov12a10_table_write_cmos_sensor(
+		addr_data_pair_capture_24fps_ov12a10,
+		sizeof(addr_data_pair_capture_24fps_ov12a10) /
+		sizeof(kal_uint16));
 	} else {
-		ov12a10_table_write_cmos_sensor(
-			addr_data_pair_capture_30fps_ov12a10,
-			sizeof(addr_data_pair_capture_30fps_ov12a10) /
-			sizeof(kal_uint16));
+	ov12a10_table_write_cmos_sensor(
+		addr_data_pair_capture_30fps_ov12a10,
+		sizeof(addr_data_pair_capture_30fps_ov12a10) /
+		sizeof(kal_uint16));
 	}
 #else
 	if (currefps == 150) {
-		//15fps for PIP
-		write_cmos_sensor(0x3642, 0x12);
-		write_cmos_sensor(0x3666, 0x08);
-		write_cmos_sensor(0x366b, 0x20);
-		write_cmos_sensor(0x366c, 0xa4);
-		write_cmos_sensor(0x366d, 0x20);
-		write_cmos_sensor(0x366e, 0xa4);
-		write_cmos_sensor(0x3714, 0x24);
-		write_cmos_sensor(0x371a, 0x3e);
-		write_cmos_sensor(0x3737, 0x04);
-		write_cmos_sensor(0x3739, 0x12);
-		write_cmos_sensor(0x37c2, 0x04);
-		write_cmos_sensor(0x37d9, 0x0c);
-		write_cmos_sensor(0x37e3, 0x04);
-		write_cmos_sensor(0x37e4, 0x2a);
-		write_cmos_sensor(0x37e6, 0x04);
-		write_cmos_sensor(0x3800, 0x00);
-		write_cmos_sensor(0x3801, 0x00);
-		write_cmos_sensor(0x3802, 0x00);
-		write_cmos_sensor(0x3803, 0x00);
-		write_cmos_sensor(0x3804, 0x10);
-		write_cmos_sensor(0x3805, 0x0f);
-		write_cmos_sensor(0x3806, 0x0c);
-		write_cmos_sensor(0x3807, 0x0f);
-		write_cmos_sensor(0x3808, 0x10);
-		write_cmos_sensor(0x3809, 0x00);
-		write_cmos_sensor(0x380a, 0x0c);
-		write_cmos_sensor(0x380b, 0x00);
-		write_cmos_sensor(0x380e, 0x1a);//d12 = 3346 -> 6692
-		write_cmos_sensor(0x380f, 0x24);
-		write_cmos_sensor(0x3810, 0x00);
-		write_cmos_sensor(0x3811, 0x0a);
-		write_cmos_sensor(0x3813, 0x08);
-		write_cmos_sensor(0x3814, 0x01);
-		write_cmos_sensor(0x3816, 0x01);
-		write_cmos_sensor(0x3820, 0xa8);
-		write_cmos_sensor(0x4009, 0x0f);
-		write_cmos_sensor(0x4050, 0x04);
-		write_cmos_sensor(0x4051, 0x0b);
-		write_cmos_sensor(0x4501, 0x00);
-		write_cmos_sensor(0x5002, 0x45);
-		write_cmos_sensor(0x3501, 0xd0);
-		write_cmos_sensor(0x3502, 0xa0);
-		write_cmos_sensor(0x3820, 0xa8);
-		write_cmos_sensor(0x3811, 0x0a);
-		write_cmos_sensor(0x3813, 0x08);
+	//15fps for PIP
+	write_cmos_sensor(0x3642, 0x12);
+	write_cmos_sensor(0x3666, 0x08);
+	write_cmos_sensor(0x366b, 0x20);
+	write_cmos_sensor(0x366c, 0xa4);
+	write_cmos_sensor(0x366d, 0x20);
+	write_cmos_sensor(0x366e, 0xa4);
+	write_cmos_sensor(0x3714, 0x24);
+	write_cmos_sensor(0x371a, 0x3e);
+	write_cmos_sensor(0x3737, 0x04);
+	write_cmos_sensor(0x3739, 0x12);
+	write_cmos_sensor(0x37c2, 0x04);
+	write_cmos_sensor(0x37d9, 0x0c);
+	write_cmos_sensor(0x37e3, 0x04);
+	write_cmos_sensor(0x37e4, 0x2a);
+	write_cmos_sensor(0x37e6, 0x04);
+	write_cmos_sensor(0x3800, 0x00);
+	write_cmos_sensor(0x3801, 0x00);
+	write_cmos_sensor(0x3802, 0x00);
+	write_cmos_sensor(0x3803, 0x00);
+	write_cmos_sensor(0x3804, 0x10);
+	write_cmos_sensor(0x3805, 0x0f);
+	write_cmos_sensor(0x3806, 0x0c);
+	write_cmos_sensor(0x3807, 0x0f);
+	write_cmos_sensor(0x3808, 0x10);
+	write_cmos_sensor(0x3809, 0x00);
+	write_cmos_sensor(0x380a, 0x0c);
+	write_cmos_sensor(0x380b, 0x00);
+	write_cmos_sensor(0x380e, 0x1a);//d12 = 3346 -> 6692
+	write_cmos_sensor(0x380f, 0x24);
+	write_cmos_sensor(0x3810, 0x00);
+	write_cmos_sensor(0x3811, 0x0a);
+	write_cmos_sensor(0x3813, 0x08);
+	write_cmos_sensor(0x3814, 0x01);
+	write_cmos_sensor(0x3816, 0x01);
+	write_cmos_sensor(0x3820, 0xa8);
+	write_cmos_sensor(0x4009, 0x0f);
+	write_cmos_sensor(0x4050, 0x04);
+	write_cmos_sensor(0x4051, 0x0b);
+	write_cmos_sensor(0x4501, 0x00);
+	write_cmos_sensor(0x5002, 0x45);
+	write_cmos_sensor(0x3501, 0xd0);
+	write_cmos_sensor(0x3502, 0xa0);
+	write_cmos_sensor(0x3820, 0xa8);
+	write_cmos_sensor(0x3811, 0x0a);
+	write_cmos_sensor(0x3813, 0x08);
 
 #if 0
 	#ifdef OV12A10_SYNC_OPEN
@@ -1241,52 +1247,52 @@ static void capture_setting(kal_uint16 currefps)//jack yan check
 	#endif
 #endif
 	} else if (currefps == 240) {
-		//24fps for PIP
-		write_cmos_sensor(0x3642, 0x12);
-		write_cmos_sensor(0x3666, 0x08);
-		write_cmos_sensor(0x366b, 0x20);
-		write_cmos_sensor(0x366c, 0xa4);
-		write_cmos_sensor(0x366d, 0x20);
-		write_cmos_sensor(0x366e, 0xa4);
-		write_cmos_sensor(0x3714, 0x24);
-		write_cmos_sensor(0x371a, 0x3e);
-		write_cmos_sensor(0x3737, 0x04);
-		write_cmos_sensor(0x3739, 0x12);
-		write_cmos_sensor(0x37c2, 0x04);
-		write_cmos_sensor(0x37d9, 0x0c);
-		write_cmos_sensor(0x37e3, 0x04);
-		write_cmos_sensor(0x37e4, 0x2a);
-		write_cmos_sensor(0x37e6, 0x04);
-		write_cmos_sensor(0x3800, 0x00);
-		write_cmos_sensor(0x3801, 0x00);
-		write_cmos_sensor(0x3802, 0x00);
-		write_cmos_sensor(0x3803, 0x00);
-		write_cmos_sensor(0x3804, 0x10);
-		write_cmos_sensor(0x3805, 0x0f);
-		write_cmos_sensor(0x3806, 0x0c);
-		write_cmos_sensor(0x3807, 0x0f);
-		write_cmos_sensor(0x3808, 0x10);
-		write_cmos_sensor(0x3809, 0x00);
-		write_cmos_sensor(0x380a, 0x0c);
-		write_cmos_sensor(0x380b, 0x00);
-		write_cmos_sensor(0x380e, 0x10);
-		write_cmos_sensor(0x380f, 0x56);
-		write_cmos_sensor(0x3810, 0x00);
-		write_cmos_sensor(0x3811, 0x0a);
-		write_cmos_sensor(0x3813, 0x08);
-		write_cmos_sensor(0x3814, 0x01);
-		write_cmos_sensor(0x3816, 0x01);
-		write_cmos_sensor(0x3820, 0xa8);
-		write_cmos_sensor(0x4009, 0x0f);
-		write_cmos_sensor(0x4050, 0x04);
-		write_cmos_sensor(0x4051, 0x0b);
-		write_cmos_sensor(0x4501, 0x00);
-		write_cmos_sensor(0x5002, 0x45);
-		write_cmos_sensor(0x3501, 0xd0);
-		write_cmos_sensor(0x3502, 0xa0);
-		write_cmos_sensor(0x3820, 0xa8);
-		write_cmos_sensor(0x3811, 0x0a);
-		write_cmos_sensor(0x3813, 0x08);
+	//24fps for PIP
+	write_cmos_sensor(0x3642, 0x12);
+	write_cmos_sensor(0x3666, 0x08);
+	write_cmos_sensor(0x366b, 0x20);
+	write_cmos_sensor(0x366c, 0xa4);
+	write_cmos_sensor(0x366d, 0x20);
+	write_cmos_sensor(0x366e, 0xa4);
+	write_cmos_sensor(0x3714, 0x24);
+	write_cmos_sensor(0x371a, 0x3e);
+	write_cmos_sensor(0x3737, 0x04);
+	write_cmos_sensor(0x3739, 0x12);
+	write_cmos_sensor(0x37c2, 0x04);
+	write_cmos_sensor(0x37d9, 0x0c);
+	write_cmos_sensor(0x37e3, 0x04);
+	write_cmos_sensor(0x37e4, 0x2a);
+	write_cmos_sensor(0x37e6, 0x04);
+	write_cmos_sensor(0x3800, 0x00);
+	write_cmos_sensor(0x3801, 0x00);
+	write_cmos_sensor(0x3802, 0x00);
+	write_cmos_sensor(0x3803, 0x00);
+	write_cmos_sensor(0x3804, 0x10);
+	write_cmos_sensor(0x3805, 0x0f);
+	write_cmos_sensor(0x3806, 0x0c);
+	write_cmos_sensor(0x3807, 0x0f);
+	write_cmos_sensor(0x3808, 0x10);
+	write_cmos_sensor(0x3809, 0x00);
+	write_cmos_sensor(0x380a, 0x0c);
+	write_cmos_sensor(0x380b, 0x00);
+	write_cmos_sensor(0x380e, 0x10);
+	write_cmos_sensor(0x380f, 0x56);
+	write_cmos_sensor(0x3810, 0x00);
+	write_cmos_sensor(0x3811, 0x0a);
+	write_cmos_sensor(0x3813, 0x08);
+	write_cmos_sensor(0x3814, 0x01);
+	write_cmos_sensor(0x3816, 0x01);
+	write_cmos_sensor(0x3820, 0xa8);
+	write_cmos_sensor(0x4009, 0x0f);
+	write_cmos_sensor(0x4050, 0x04);
+	write_cmos_sensor(0x4051, 0x0b);
+	write_cmos_sensor(0x4501, 0x00);
+	write_cmos_sensor(0x5002, 0x45);
+	write_cmos_sensor(0x3501, 0xd0);
+	write_cmos_sensor(0x3502, 0xa0);
+	write_cmos_sensor(0x3820, 0xa8);
+	write_cmos_sensor(0x3811, 0x0a);
+	write_cmos_sensor(0x3813, 0x08);
 #if 0
 	#ifdef OV12A10_SYNC_OPEN
 	write_cmos_senor(0x3002, 0x21);//close the func
@@ -1295,53 +1301,53 @@ static void capture_setting(kal_uint16 currefps)//jack yan check
 	#endif
 #endif
 
-	} else {
-		//30fps
-		write_cmos_sensor(0x3642, 0x12);
-		write_cmos_sensor(0x3666, 0x08);
-		write_cmos_sensor(0x366b, 0x20);
-		write_cmos_sensor(0x366c, 0xa4);
-		write_cmos_sensor(0x366d, 0x20);
-		write_cmos_sensor(0x366e, 0xa4);
-		write_cmos_sensor(0x3714, 0x24);
-		write_cmos_sensor(0x371a, 0x3e);
-		write_cmos_sensor(0x3737, 0x04);
-		write_cmos_sensor(0x3739, 0x12);
-		write_cmos_sensor(0x37c2, 0x04);
-		write_cmos_sensor(0x37d9, 0x0c);
-		write_cmos_sensor(0x37e3, 0x04);
-		write_cmos_sensor(0x37e4, 0x2a);
-		write_cmos_sensor(0x37e6, 0x04);
-		write_cmos_sensor(0x3800, 0x00);
-		write_cmos_sensor(0x3801, 0x00);
-		write_cmos_sensor(0x3802, 0x00);
-		write_cmos_sensor(0x3803, 0x00);
-		write_cmos_sensor(0x3804, 0x10);
-		write_cmos_sensor(0x3805, 0x0f);
-		write_cmos_sensor(0x3806, 0x0c);
-		write_cmos_sensor(0x3807, 0x0f);
-		write_cmos_sensor(0x3808, 0x10);
-		write_cmos_sensor(0x3809, 0x00);
-		write_cmos_sensor(0x380a, 0x0c);
-		write_cmos_sensor(0x380b, 0x00);
-		write_cmos_sensor(0x380e, 0x0d);//3346
-		write_cmos_sensor(0x380f, 0x12);
-		write_cmos_sensor(0x3810, 0x00);
-		write_cmos_sensor(0x3811, 0x0a);
-		write_cmos_sensor(0x3813, 0x08);
-		write_cmos_sensor(0x3814, 0x01);
-		write_cmos_sensor(0x3816, 0x01);
-		write_cmos_sensor(0x3820, 0xa8);
-		write_cmos_sensor(0x4009, 0x0f);
-		write_cmos_sensor(0x4050, 0x04);
-		write_cmos_sensor(0x4051, 0x0b);
-		write_cmos_sensor(0x4501, 0x00);
-		write_cmos_sensor(0x5002, 0x45);
-		write_cmos_sensor(0x3501, 0xd0);
-		write_cmos_sensor(0x3502, 0xa0);
-		write_cmos_sensor(0x3820, 0xa8);
-		write_cmos_sensor(0x3811, 0x0a);
-		write_cmos_sensor(0x3813, 0x08);
+} else{
+	//30fps
+	write_cmos_sensor(0x3642, 0x12);
+	write_cmos_sensor(0x3666, 0x08);
+	write_cmos_sensor(0x366b, 0x20);
+	write_cmos_sensor(0x366c, 0xa4);
+	write_cmos_sensor(0x366d, 0x20);
+	write_cmos_sensor(0x366e, 0xa4);
+	write_cmos_sensor(0x3714, 0x24);
+	write_cmos_sensor(0x371a, 0x3e);
+	write_cmos_sensor(0x3737, 0x04);
+	write_cmos_sensor(0x3739, 0x12);
+	write_cmos_sensor(0x37c2, 0x04);
+	write_cmos_sensor(0x37d9, 0x0c);
+	write_cmos_sensor(0x37e3, 0x04);
+	write_cmos_sensor(0x37e4, 0x2a);
+	write_cmos_sensor(0x37e6, 0x04);
+	write_cmos_sensor(0x3800, 0x00);
+	write_cmos_sensor(0x3801, 0x00);
+	write_cmos_sensor(0x3802, 0x00);
+	write_cmos_sensor(0x3803, 0x00);
+	write_cmos_sensor(0x3804, 0x10);
+	write_cmos_sensor(0x3805, 0x0f);
+	write_cmos_sensor(0x3806, 0x0c);
+	write_cmos_sensor(0x3807, 0x0f);
+	write_cmos_sensor(0x3808, 0x10);
+	write_cmos_sensor(0x3809, 0x00);
+	write_cmos_sensor(0x380a, 0x0c);
+	write_cmos_sensor(0x380b, 0x00);
+	write_cmos_sensor(0x380e, 0x0d);//3346
+	write_cmos_sensor(0x380f, 0x12);
+	write_cmos_sensor(0x3810, 0x00);
+	write_cmos_sensor(0x3811, 0x0a);
+	write_cmos_sensor(0x3813, 0x08);
+	write_cmos_sensor(0x3814, 0x01);
+	write_cmos_sensor(0x3816, 0x01);
+	write_cmos_sensor(0x3820, 0xa8);
+	write_cmos_sensor(0x4009, 0x0f);
+	write_cmos_sensor(0x4050, 0x04);
+	write_cmos_sensor(0x4051, 0x0b);
+	write_cmos_sensor(0x4501, 0x00);
+	write_cmos_sensor(0x5002, 0x45);
+	write_cmos_sensor(0x3501, 0xd0);
+	write_cmos_sensor(0x3502, 0xa0);
+	write_cmos_sensor(0x3820, 0xa8);
+	write_cmos_sensor(0x3811, 0x0a);
+	write_cmos_sensor(0x3813, 0x08);
 
 #if 0
 	#ifdef OV12A10_SYNC_OPEN
@@ -1356,13 +1362,13 @@ static void capture_setting(kal_uint16 currefps)//jack yan check
 
 	#endif
 #endif
-	}
+}
 #endif
 }
 
 static void normal_video_setting(kal_uint16 currefps)
 {
-	LOG_INF("%s RES_4096*3072_30fps\n", __func__);
+	LOG_INF("normal_video_setting RES_4096*3072_30fps\n");
 #if MULTI_WRITE
 	ov12a10_table_write_cmos_sensor(
 		addr_data_pair_capture_30fps_ov12a10,
@@ -1473,7 +1479,7 @@ kal_uint16 addr_data_pair_hs_video_ov12a10[] = {
 
 static void hs_video_setting(void)
 {
-	LOG_INF("%s RES_1280x720_120fps\n", __func__);
+	LOG_INF("hs_video_setting RES_1280x720_120fps\n");
 #if MULTI_WRITE
 	ov12a10_table_write_cmos_sensor(
 		addr_data_pair_hs_video_ov12a10,
@@ -1537,7 +1543,7 @@ static void hs_video_setting(void)
 
 static void slim_video_setting(void)//jack yan check
 {
-	LOG_INF("%s RES_2048*1536_30fps\n", __func__);
+	LOG_INF("slim_video_setting RES_2048*1536_30fps\n");
 	preview_setting();
 }
 
@@ -1667,24 +1673,24 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 	kal_uint8 retry = 2;
 
 	while (imgsensor_info.i2c_addr_table[i] != 0xff) {
-		spin_lock(&imgsensor_drv_lock);
-		imgsensor.i2c_write_id = imgsensor_info.i2c_addr_table[i];
-		spin_unlock(&imgsensor_drv_lock);
-		do {
-			*sensor_id = return_sensor_id();
-			if (*sensor_id == imgsensor_info.sensor_id) {
-				LOG_INF("ov12a read[%s] sensor id: 0x%x\n",
-					__func__, *sensor_id);
-				return ERROR_NONE;
-			}
+	spin_lock(&imgsensor_drv_lock);
+	imgsensor.i2c_write_id = imgsensor_info.i2c_addr_table[i];
+	spin_unlock(&imgsensor_drv_lock);
+	do {
+		*sensor_id = return_sensor_id();
+		if (*sensor_id == imgsensor_info.sensor_id) {
+		LOG_INF("ov12a read[get_imgsensor_id] sensor id: 0x%x\n",
+				*sensor_id);
+			return ERROR_NONE;
+		}
 
-			retry--;
-		} while (retry > 0);
-		i++;
-		retry = 1;
+		retry--;
+	} while (retry > 0);
+	i++;
+	retry = 1;
 	}
 	if (*sensor_id != imgsensor_info.sensor_id) {
-		LOG_INF("%s failed: 0x%x\n", __func__, *sensor_id);
+		LOG_INF("get_imgsensor_id failed: 0x%x\n", *sensor_id);
 		*sensor_id = 0xFFFFFFFF;
 		return ERROR_SENSOR_CONNECT_FAIL;
 	}
@@ -1699,23 +1705,23 @@ static kal_uint32 open(void) //check out
 	kal_uint32 sensor_id = 0;
 
 	while (imgsensor_info.i2c_addr_table[i] != 0xff) {
-		spin_lock(&imgsensor_drv_lock);
-		imgsensor.i2c_write_id = imgsensor_info.i2c_addr_table[i];
-		spin_unlock(&imgsensor_drv_lock);
-		do {
-			sensor_id = return_sensor_id();
-			if (sensor_id == imgsensor_info.sensor_id) {
-				LOG_INF("i2c write id: 0x%x, sensor id: 0x%x\n",
-					imgsensor.i2c_write_id, sensor_id);
-				break;
-			}
+	spin_lock(&imgsensor_drv_lock);
+	imgsensor.i2c_write_id = imgsensor_info.i2c_addr_table[i];
+	spin_unlock(&imgsensor_drv_lock);
+	do {
+		sensor_id = return_sensor_id();
+	if (sensor_id == imgsensor_info.sensor_id) {
+		LOG_INF("i2c write id: 0x%x, sensor id: 0x%x\n",
+			imgsensor.i2c_write_id, sensor_id);
+		break;
+	}
 
-			retry--;
-		} while (retry > 0);
-		i++;
-		if (sensor_id == imgsensor_info.sensor_id)
-			break;
-		retry = 2;
+		retry--;
+	} while (retry > 0);
+	i++;
+	if (sensor_id == imgsensor_info.sensor_id)
+	break;
+	retry = 2;
 	}
 	if (imgsensor_info.sensor_id != sensor_id) {
 		LOG_INF("Open sensor id fail: 0x%x\n", sensor_id);
@@ -1749,10 +1755,10 @@ static kal_uint32 close(void)
 }   /*  close  */
 
 static kal_uint32 preview(
-			MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
+			MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT * image_window,
 			MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
-	LOG_INF("%s setting E\n", __func__);
+	LOG_INF("preview setting E\n");
 
 	spin_lock(&imgsensor_drv_lock);
 	imgsensor.sensor_mode = IMGSENSOR_MODE_PREVIEW;
@@ -1769,31 +1775,31 @@ static kal_uint32 preview(
 }
 
 static kal_uint32 capture(
-			MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
+			MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT * image_window,
 			MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
 	spin_lock(&imgsensor_drv_lock);
 	imgsensor.sensor_mode = IMGSENSOR_MODE_CAPTURE;
-	//PIP capture: 24fps for less than 13M, 20fps for 16M,15fps for 20M
+//PIP capture: 24fps for less than 13M, 20fps for 16M,15fps for 20M
 	if (imgsensor.current_fps == imgsensor_info.cap2.max_framerate) {
-		imgsensor.pclk = imgsensor_info.cap2.pclk;
-		imgsensor.line_length = imgsensor_info.cap2.linelength;
-		imgsensor.frame_length = imgsensor_info.cap2.framelength;
-		imgsensor.min_frame_length = imgsensor_info.cap2.framelength;
-		//imgsensor.autoflicker_en = KAL_FALSE;
+	imgsensor.pclk = imgsensor_info.cap2.pclk;
+	imgsensor.line_length = imgsensor_info.cap2.linelength;
+	imgsensor.frame_length = imgsensor_info.cap2.framelength;
+	imgsensor.min_frame_length = imgsensor_info.cap2.framelength;
+	//imgsensor.autoflicker_en = KAL_FALSE;
 	//PIP capture: 24fps for less than 13M, 20fps for 16M,15fps for 20M
 	} else if (imgsensor.current_fps == imgsensor_info.cap1.max_framerate) {
-		imgsensor.pclk = imgsensor_info.cap1.pclk;
-		imgsensor.line_length = imgsensor_info.cap1.linelength;
-		imgsensor.frame_length = imgsensor_info.cap1.framelength;
-		imgsensor.min_frame_length = imgsensor_info.cap1.framelength;
-		//imgsensor.autoflicker_en = KAL_FALSE;
+	imgsensor.pclk = imgsensor_info.cap1.pclk;
+	imgsensor.line_length = imgsensor_info.cap1.linelength;
+	imgsensor.frame_length = imgsensor_info.cap1.framelength;
+	imgsensor.min_frame_length = imgsensor_info.cap1.framelength;
+	//imgsensor.autoflicker_en = KAL_FALSE;
 	} else {
-		imgsensor.pclk = imgsensor_info.cap.pclk;
-		imgsensor.line_length = imgsensor_info.cap.linelength;
-		imgsensor.frame_length = imgsensor_info.cap.framelength;
-		imgsensor.min_frame_length = imgsensor_info.cap.framelength;
-		//imgsensor.autoflicker_en = KAL_FALSE;
+	imgsensor.pclk = imgsensor_info.cap.pclk;
+	imgsensor.line_length = imgsensor_info.cap.linelength;
+	imgsensor.frame_length = imgsensor_info.cap.framelength;
+	imgsensor.min_frame_length = imgsensor_info.cap.framelength;
+	//imgsensor.autoflicker_en = KAL_FALSE;
 	}
 
 	spin_unlock(&imgsensor_drv_lock);
@@ -1804,7 +1810,7 @@ static kal_uint32 capture(
 }   /* capture() */
 
 static kal_uint32 normal_video(
-			MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
+			MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT * image_window,
 			MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
 	spin_lock(&imgsensor_drv_lock);
@@ -1822,7 +1828,7 @@ static kal_uint32 normal_video(
 }
 
 static kal_uint32 hs_video(
-			MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
+			MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT * image_window,
 			MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
 	spin_lock(&imgsensor_drv_lock);
@@ -1841,7 +1847,7 @@ static kal_uint32 hs_video(
 }
 
 static kal_uint32 slim_video(
-			MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
+			MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT * image_window,
 			MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
 	spin_lock(&imgsensor_drv_lock);
@@ -1893,7 +1899,7 @@ static kal_uint32 custom2(
 }
 
 static kal_uint32 get_resolution(
-		MSDK_SENSOR_RESOLUTION_INFO_STRUCT * sensor_resolution)
+			MSDK_SENSOR_RESOLUTION_INFO_STRUCT * sensor_resolution)
 {
 	sensor_resolution->SensorFullWidth =
 		imgsensor_info.cap.grabwindow_width;
@@ -1938,7 +1944,7 @@ static kal_uint32 get_info(
 			MSDK_SENSOR_CONFIG_STRUCT *sensor_config_data)
 {
 	if (scenario_id == 0)
-		LOG_INF("scenario_id = %d\n", scenario_id);
+	LOG_INF("scenario_id = %d\n", scenario_id);
 
 	sensor_info->SensorClockPolarity = SENSOR_CLOCK_POLARITY_LOW;
 	 /* not use */
@@ -2116,7 +2122,7 @@ static kal_uint32 control(
 
 static kal_uint32 set_video_mode(UINT16 framerate)
 {
-	LOG_INF("%s framerate = %d\n ", __func__, framerate);
+	LOG_INF("set_video_mode framerate = %d\n ", framerate);
 	// SetVideoMode Function should fix framerate
 	if (framerate == 0)
 	// Dynamic frame rate
@@ -2138,8 +2144,8 @@ static kal_uint32 set_video_mode(UINT16 framerate)
 
 static kal_uint32 set_auto_flicker_mode(kal_bool enable, UINT16 framerate)
 {
-	LOG_INF("%s enable = %d, framerate = %d\n",
-		__func__, enable, framerate);
+	LOG_INF("set_auto_flicker_mode enable = %d, framerate = %d\n",
+		enable, framerate);
 
 	spin_lock(&imgsensor_drv_lock);
 	if (enable) //enable auto flicker
@@ -2160,7 +2166,7 @@ static kal_uint32 set_max_framerate_by_scenario(
 	LOG_INF("scenario_id = %d, framerate = %d\n", scenario_id, framerate);
 
 	if (framerate == 0)
-		return ERROR_NONE;
+	return ERROR_NONE;
 
 	switch (scenario_id) {
 	case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
@@ -2325,24 +2331,24 @@ static kal_uint32 get_default_framerate_by_scenario(
 			MUINT32 *framerate)
 {
 	if (scenario_id == 0)
-		LOG_INF("[3058]scenario_id = %d\n", scenario_id);
+	LOG_INF("[3058]scenario_id = %d\n", scenario_id);
 
 	switch (scenario_id) {
 	case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
-		*framerate = imgsensor_info.pre.max_framerate;
-		break;
+	    *framerate = imgsensor_info.pre.max_framerate;
+	break;
 	case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
-		*framerate = imgsensor_info.normal_video.max_framerate;
-		break;
+	    *framerate = imgsensor_info.normal_video.max_framerate;
+	break;
 	case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
 		*framerate = imgsensor_info.cap.max_framerate;
-		break;
+	break;
 	case MSDK_SCENARIO_ID_HIGH_SPEED_VIDEO:
 		*framerate = imgsensor_info.hs_video.max_framerate;
-		break;
+	break;
 	case MSDK_SCENARIO_ID_SLIM_VIDEO:
 		*framerate = imgsensor_info.slim_video.max_framerate;
-		break;
+	break;
 	case MSDK_SCENARIO_ID_CUSTOM1:
 		*framerate = imgsensor_info.custom1.max_framerate;
 		break;
@@ -2350,7 +2356,7 @@ static kal_uint32 get_default_framerate_by_scenario(
 		*framerate = imgsensor_info.custom2.max_framerate;
 		break;
 	default:
-		break;
+	break;
 	}
 
 	return ERROR_NONE;
@@ -2358,12 +2364,12 @@ static kal_uint32 get_default_framerate_by_scenario(
 
 static kal_uint32 set_test_pattern_mode(kal_bool enable)
 {
-	LOG_INF("%s enable: %d\n", __func__, enable);
+	LOG_INF("set_test_pattern_mode enable: %d\n", enable);
 
 	if (enable)
-		write_cmos_sensor(0x4503, 0x80);//has been tested
+	write_cmos_sensor(0x4503, 0x80);//has been tested
 	else
-		write_cmos_sensor(0x4503, 0x00);
+	write_cmos_sensor(0x4503, 0x00);
 
 	spin_lock(&imgsensor_drv_lock);
 	imgsensor.test_pattern = enable;
@@ -2405,7 +2411,7 @@ static kal_uint32 feature_control(
 	    set_shutter(*feature_data);//jack yan
 	break;
 	case SENSOR_FEATURE_SET_NIGHTMODE:
-	    night_mode((BOOL) (*feature_data));
+	    night_mode((BOOL) * feature_data);
 	break;
 	case SENSOR_FEATURE_SET_GAIN:
 	    set_gain((UINT16) *feature_data);//jack yan
@@ -2597,7 +2603,7 @@ static struct SENSOR_FUNCTION_STRUCT sensor_func = {
 };
 
 UINT32 OV12A10_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc)
-{
+	{
 	/* To Do : Check Sensor status here */
 	if (pfFunc != NULL)
 		*pfFunc =  &sensor_func;

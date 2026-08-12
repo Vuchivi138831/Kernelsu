@@ -1,6 +1,14 @@
-/* SPDX-License-Identifier: GPL-2.0 */
 /*
- * Copyright (c) 2019 MediaTek Inc.
+ * Copyright (C) 2016 MediaTek Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
 #ifndef _IMX386MIPI_SENSOR_H
 #define _IMX386MIPI_SENSOR_H
@@ -39,7 +47,6 @@ struct imgsensor_mode_struct {
 
 	/* following for GetDefaultFramerateByScenario() */
 	kal_uint16 max_framerate;
-	kal_uint32 mipi_pixel_rate;
 
 };
 
@@ -131,11 +138,6 @@ struct imgsensor_info_struct {
 
 	kal_uint8 margin;	/* sensor framelength & shutter margin */
 	kal_uint32 min_shutter;	/* min shutter */
-	kal_uint32 min_gain;
-	kal_uint32 max_gain;
-	kal_uint32 min_gain_iso;
-	kal_uint32 gain_step;
-	kal_uint32 gain_type;
 
 	/* max framelength by sensor register's limitation */
 	kal_uint32 max_frame_length;

@@ -1,6 +1,14 @@
-// SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2019 MediaTek Inc.
+ * Copyright (C) 2016 MediaTek Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
 
 /************************************************************************
@@ -94,6 +102,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 	.sensor_id = IMX499_SENSOR_ID,
 
 	/* checksum value for Camera Auto Test 2018.02.27 */
+	//.checksum_value = 0xf50b67cd,
 	.checksum_value = 0xc3d800a0,
 
 	.pre = {/*data rate 840 Mbps/lane */
@@ -290,19 +299,19 @@ static struct SENSOR_VC_INFO_STRUCT SENSOR_VC_INFO[3] = {
 	 {0x03, 0x0a, 0x00, 0x08, 0x40, 0x00,
 	  0x00, 0x2b, 0x0918, 0x06D2,/*VC0*/
 	  0x00, 0x00, 0x00, 0x00,/*VC1*/
-	  0x00, 0x00, 0x0000, 0x0000,/*VC2 LPD+RPD*/
+	  0x00, 0x31, 0x02BC, 0x019F*2,/*VC2 LPD+RPD*/
 	  0x03, 0x00, 0x0000, 0x0000},/*VC3*/
 	 /* Capture mode setting */
 	 {0x03, 0x0a, 0x00, 0x08, 0x40, 0x00,
 	  0x00, 0x2b, 0x1230, 0x0DA8,/*VC0*/
 	  0x00, 0x00, 0x00, 0x00,/*VC1*/
-	  0x00, 0x00, 0x0000, 0x0000,/*VC2 LPD+RPD*/
+	  0x00, 0x31, 0x02BC, 0x01A0*2,/*VC2 LPD+RPD*/
 	  0x03, 0x00, 0x0000, 0x0000},/*VC3*/
 	 /* Video mode setting */
 	 {0x02, 0x0a, 0x00, 0x08, 0x40, 0x00,
 	  0x00, 0x2b, 0x14E0, 0x0FB0,
 	  0x00, 0x00, 0x00, 0x00,
-	  0x00, 0x00, 0x0000, 0x0000,
+	  0x00, 0x31, 0x02BC, 0x0144*2,
 	  0x03, 0x00, 0x0000, 0x0000}
 };
 
@@ -776,6 +785,12 @@ static void imx499_apply_LRC(void)
 	char puSendCmd[75];
 	kal_uint32 tosend;
 
+#if 0
+	pr_debug("E  Is_Read_LRC_Data=%d", Is_Read_LRC_Data);
+
+	for (i = 0; i < 140; i++)
+		pr_debug("dump LRC[i]=%d", i, imx499_LRC_data[i]);
+#endif
 	tosend = 0;
 	puSendCmd[tosend++] = (char)(startL_reg >> 8);
 	puSendCmd[tosend++] = (char)(startL_reg & 0xFF);
@@ -1066,7 +1081,7 @@ static kal_uint16 set_gain(kal_uint16 gain)
 
 static void set_PD_pdc(kal_uint8 enable)
 {/*enable mean PD point->Pure RAW*/
-	pr_debug("PD_pdc = %d\n", enable);
+	pr_debug("set_PD_pdc = %d\n", enable);
 	if (enable) {
 		write_cmos_sensor(0x0101, 0x00);
 		write_cmos_sensor(0x0B00, 0x00);
@@ -1977,7 +1992,7 @@ static kal_uint32 capture(MSDK_SENSOR_EXPOSURE_WINDOW_STRUCT *image_window,
 	imgsensor.sensor_mode = IMGSENSOR_MODE_CAPTURE;
 
 	if (imgsensor.current_fps != imgsensor_info.cap.max_framerate)
-		pr_debug(
+	pr_debug(
 			"Warning: current_fps %d fps is not support, so use cap's setting: %d fps!\n",
 			imgsensor.current_fps,
 			imgsensor_info.cap.max_framerate / 10);
@@ -2170,7 +2185,10 @@ static kal_uint32 get_info(enum MSDK_SCENARIO_ID_ENUM scenario_id,
 	sensor_info->SensorModeNum = imgsensor_info.sensor_mode_num;
 
 	/*0: NO PDAF, 1: PDAF Raw Data mode, 2:PDAF VC mode */
-		sensor_info->PDAF_Support = PDAF_SUPPORT_NA;
+	if (PDAF_RAW_mode == 1)
+		sensor_info->PDAF_Support = PDAF_SUPPORT_RAW_LEGACY;
+	else/*default*/
+		sensor_info->PDAF_Support = PDAF_SUPPORT_CAMSV;
 
 	sensor_info->SensorHorFOV = 63;
 	sensor_info->SensorVerFOV = 49;
@@ -2778,11 +2796,11 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 #if Crop_to_13M
 			*(MUINT32 *) (uintptr_t) (*(feature_data + 1)) = 0;
 #else
-			*(MUINT32 *) (uintptr_t) (*(feature_data + 1)) = 0;
+			*(MUINT32 *) (uintptr_t) (*(feature_data + 1)) = 1;
 #endif
 			break;
 		case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
-			*(MUINT32 *) (uintptr_t) (*(feature_data + 1)) = 0;
+			*(MUINT32 *) (uintptr_t) (*(feature_data + 1)) = 1;
 			break;
 		case MSDK_SCENARIO_ID_HIGH_SPEED_VIDEO:
 			*(MUINT32 *) (uintptr_t) (*(feature_data + 1)) = 0;
@@ -2791,7 +2809,12 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 			*(MUINT32 *) (uintptr_t) (*(feature_data + 1)) = 0;
 			break;
 		case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
-			*(MUINT32 *) (uintptr_t) (*(feature_data + 1)) = 0;
+			if (PDAF_RAW_mode)
+				*(MUINT32 *) (uintptr_t)
+					(*(feature_data + 1)) = 0;
+			else
+				*(MUINT32 *) (uintptr_t)
+					(*(feature_data + 1)) = 1;
 			break;
 		default:
 			*(MUINT32 *) (uintptr_t) (*(feature_data + 1)) = 0;
