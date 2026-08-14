@@ -1,0 +1,44 @@
+name: Extract Power & CPUFreq Source Files
+
+on:
+  workflow_dispatch: # Cho phép bấm nút chạy thủ công trên GitHub UI
+
+jobs:
+  extract-and-zip:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v4
+
+      - name: Create Staging Directory & Copy Target Files
+        run: |
+          # Tạo thư mục tạm để chứa các file gom được
+          mkdir -p extracted_files
+
+          echo "=== Finding and Copying Target Files ==="
+
+          # 1. Copy toàn bộ thư mục cpufreq_v1, ppm_v3, upower_v2 và devfreq
+          cp --parents -r drivers/misc/mediatek/base/power/cpufreq_v1 extracted_files/ 2>/dev/null || true
+          cp --parents -r drivers/misc/mediatek/base/power/ppm_v3 extracted_files/ 2>/dev/null || true
+          cp --parents -r drivers/misc/mediatek/base/power/upower_v2 extracted_files/ 2>/dev/null || true
+          cp --parents -r drivers/devfreq extracted_files/ 2>/dev/null || true
+
+          # 2. Tìm thêm các file platform liên quan đến mt6765 / mt6762 trong thư mục power
+          find drivers/misc/mediatek/base/power -type f \( -name "*mt6765*" -o -name "*mt6762*" \) -exec cp --parents {} extracted_files/ \; 2>/dev/null || true
+
+          echo "=== Extraction Complete ==="
+
+      - name: Archive Files into ZIP
+        run: |
+          cd extracted_files
+          zip -r ../mt6765_power_code.zip .
+          cd ..
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MT6765-Power-And-CPUFreq-Code
+          path: mt6765_power_code.zip
+          retention-days: 7
+          
