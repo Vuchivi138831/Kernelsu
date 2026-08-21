@@ -112,7 +112,7 @@ jobs:
           CROSS_COMPILE=aarch64-linux-gnu- \
           HOSTCFLAGS="-fcommon" \
           KCFLAGS="-Wno-ignored-qualifiers" \
-          LOCALVERSION="-Kernel-Overclock-From-OpenSource" \
+          LOCALVERSION="-nha-dai-thong-bao-tin-dong-troi-hom-nay" \
           EXTRAVERSION=""
 
     - name: Kiểm tra File Kernel Image
