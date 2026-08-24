@@ -1,47 +1,60 @@
-name: Kiểm tra lệnh 32-bit trong Makefile
+name: Check MediaTek CPUFreq Constraints
 
 on:
   workflow_dispatch:
 
 jobs:
-  check_makefiles:
+  scan-source:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout Source
+    - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Quét và Tìm kiếm trong mã nguồn Kernel
+    - name: Search CPUFreq Drivers for Speed Binning and Capping
       run: |
-        echo "================================================="
-        echo " BẮT ĐẦU QUÉT TOÀN BỘ MAKEFILE TRONG MÃ NGUỒN"
-        echo "================================================="
+        echo "==============================================================="
+        echo " ĐANG QUÉT CÁC FILE DRIVER CPUFREQ CHÍNH CỦA MEDIATEK"
+        echo "==============================================================="
+        
+        TARGET_FILES=$(find . -type f \( -name "mtk-cpufreq.c" -o -name "mtk-cpufreq-v2.c" -o -name "cpufreq.c" \) | grep -E "drivers/cpufreq|drivers/misc/mediatek")
+        
+        if [ -z "$TARGET_FILES" ]; then
+          echo "⚠️ Không tìm thấy file mtk-cpufreq.c cụ thể. Tiến hành quét diện rộng trong drivers/cpufreq..."
+          TARGET_FILES=$(find drivers/cpufreq/ -type f -name "*.c" 2>/dev/null || true)
+        fi
 
-        # Tạo file chứa kết quả
-        RESULT_FILE="check_results.txt"
-        echo "KẾT QUẢ QUÉT CÁC LỆNH 32-BIT:" > $RESULT_FILE
-        echo "-------------------------------------------------" >> $RESULT_FILE
+        if [ -z "$TARGET_FILES" ]; then
+          echo "❌ Lỗi: Không tìm thấy thư mục drivers/cpufreq/ trong repository này."
+          exit 1
+        fi
 
-        # 1. Quét tìm arm-linux-gnueabi-gcc
-        echo -e "\n[1] Tìm kiếm 'arm-linux-gnueabi-gcc':" >> $RESULT_FILE
-        grep -rnI --include="*Makefile*" --include="*.mk" --include="Kbuild" "arm-linux-gnueabi-gcc" . >> $RESULT_FILE || echo "-> Không tìm thấy" >> $RESULT_FILE
+        echo "Các file sẽ được phân tích:"
+        echo "$TARGET_FILES"
+        echo "---------------------------------------------------------------"
 
-        # 2. Quét tìm arm-linux-gnueabi-ld
-        echo -e "\n[2] Tìm kiếm 'arm-linux-gnueabi-ld':" >> $RESULT_FILE
-        grep -rnI --include="*Makefile*" --include="*.mk" --include="Kbuild" "arm-linux-gnueabi-ld" . >> $RESULT_FILE || echo "-> Không tìm thấy" >> $RESULT_FILE
+        KEYWORDS="efuse|speed_bin|speedbin|binning|g25|g35|p35|mt6765|max_freq|max_support_freq|capping|volt_tracking"
 
-        # 3. Quét tìm arm-linux-gnueabi-as
-        echo -e "\n[3] Tìm kiếm 'arm-linux-gnueabi-as':" >> $RESULT_FILE
-        grep -rnI --include="*Makefile*" --include="*.mk" --include="Kbuild" "arm-linux-gnueabi-as" . >> $RESULT_FILE || echo "-> Không tìm thấy" >> $RESULT_FILE
+        echo "Kết quả tìm kiếm từ khóa hạn chế xung nhịp:"
+        for file in $TARGET_FILES; do
+          if [ -f "$file" ]; then
+            echo -e "\n🔍 Kiểm tra file: $file"
+            grep -E -n -i "$KEYWORDS" "$file" || echo "  -> Không phát hiện từ khóa giới hạn trong file này."
+          fi
+        done
+        echo "==============================================================="
 
-        # 4. Quét tổng quát theo tiền tố CROSS_COMPILE_ARM32
-        echo -e "\n[4] Tìm các nơi gọi CROSS_COMPILE_ARM32:" >> $RESULT_FILE
-        grep -rnI --include="*Makefile*" --include="*.mk" --include="Kbuild" "CROSS_COMPILE_ARM32" . >> $RESULT_FILE || echo "-> Không tìm thấy" >> $RESULT_FILE
-
-        # In kết quả ra màn hình Log
-        cat $RESULT_FILE
-
-    - name: Lưu kết quả thành Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: Ket-Qua-Kiem-Tra-Makefile
-        path: check_results.txt
+    - name: Broad Scan for MediaTek Power Management (Backup)
+      run: |
+        echo "==============================================================="
+        echo " ĐANG QUÉT RỘNG TRONG THƯ MỤC MEDIATEK POWER (NẾU CÓ)"
+        echo "==============================================================="
+        
+        POWER_DIR="./drivers/misc/mediatek/power"
+        if [ -d "$POWER_DIR" ]; then
+          echo "Tìm thấy thư mục quản lý nguồn MediaTek. Tiến hành tìm từ khóa..."
+          grep -R -E -n -i "g25|g35|speed_bin|max_freq" "$POWER_DIR" || echo "  -> Không tìm thấy từ khóa cản trở xung nhịp trong thư mục power."
+        else
+          echo "Thư mục $POWER_DIR không tồn tại trong nhánh này, bỏ qua."
+        fi
+        echo "==============================================================="
+        
