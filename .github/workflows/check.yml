@@ -1,4 +1,4 @@
-name: Check MediaTek CPUFreq Constraints
+name: Deep Scan MediaTek CPUFreq Constraints
 
 on:
   workflow_dispatch:
@@ -10,51 +10,39 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Search CPUFreq Drivers for Speed Binning and Capping
+    - name: Global Search for MT6765 Clock and DVFS Files
       run: |
         echo "==============================================================="
-        echo " ĐANG QUÉT CÁC FILE DRIVER CPUFREQ CHÍNH CỦA MEDIATEK"
+        echo " TIẾN HÀNH QUÉT TOÀN DIỆN MÃ NGUỒN TÌM ĐỊNH NGHĨA XUNG NHỊP"
         echo "==============================================================="
         
-        TARGET_FILES=$(find . -type f \( -name "mtk-cpufreq.c" -o -name "mtk-cpufreq-v2.c" -o -name "cpufreq.c" \) | grep -E "drivers/cpufreq|drivers/misc/mediatek")
-        
-        if [ -z "$TARGET_FILES" ]; then
-          echo "⚠️ Không tìm thấy file mtk-cpufreq.c cụ thể. Tiến hành quét diện rộng trong drivers/cpufreq..."
-          TARGET_FILES=$(find drivers/cpufreq/ -type f -name "*.c" 2>/dev/null || true)
-        fi
-
-        if [ -z "$TARGET_FILES" ]; then
-          echo "❌ Lỗi: Không tìm thấy thư mục drivers/cpufreq/ trong repository này."
-          exit 1
-        fi
-
-        echo "Các file sẽ được phân tích:"
-        echo "$TARGET_FILES"
+        # 1. Tìm tất cả các file có khả năng điều khiển xung nhịp MediaTek
+        echo "🔎 1. Các file .c liên quan đến mtk, cpufreq hoặc dvfs:"
+        find . -type f -name "*.c" | grep -E "cpufreq|dvfs|mtk-freq|mach-mt" || echo "Không tìm thấy file trùng khớp sơ bộ."
         echo "---------------------------------------------------------------"
 
-        KEYWORDS="efuse|speed_bin|speedbin|binning|g25|g35|p35|mt6765|max_freq|max_support_freq|capping|volt_tracking"
-
-        echo "Kết quả tìm kiếm từ khóa hạn chế xung nhịp:"
-        for file in $TARGET_FILES; do
-          if [ -f "$file" ]; then
-            echo -e "\n🔍 Kiểm tra file: $file"
-            grep -E -n -i "$KEYWORDS" "$file" || echo "  -> Không phát hiện từ khóa giới hạn trong file này."
-          fi
-        done
+        # 2. Quét sâu từ khóa trong toàn bộ thư mục drivers/misc/mediatek
+        echo "🔎 2. Quét từ khóa giới hạn trong drivers/misc/mediatek/:"
+        if [ -d "./drivers/misc/mediatek" ]; then
+          grep -R -E -n -i "g25|g35|p35|speed_bin|speedbin" ./drivers/misc/mediatek/ || echo "Không tìm thấy từ khóa trong drivers/misc/mediatek."
+        else
+          echo "Thư mục drivers/misc/mediatek không tồn tại."
+        fi
         echo "==============================================================="
 
-    - name: Broad Scan for MediaTek Power Management (Backup)
+    - name: Scan Architecture Specific Directory (arch/arm64)
       run: |
         echo "==============================================================="
-        echo " ĐANG QUÉT RỘNG TRONG THƯ MỤC MEDIATEK POWER (NẾU CÓ)"
+        echo " QUÉT TRONG THƯ MỤC CẤU TRÚC CHÍNH (ARCH/ARM64)"
         echo "==============================================================="
         
-        POWER_DIR="./drivers/misc/mediatek/power"
-        if [ -d "$POWER_DIR" ]; then
-          echo "Tìm thấy thư mục quản lý nguồn MediaTek. Tiến hành tìm từ khóa..."
-          grep -R -E -n -i "g25|g35|speed_bin|max_freq" "$POWER_DIR" || echo "  -> Không tìm thấy từ khóa cản trở xung nhịp trong thư mục power."
+        if [ -d "./arch/arm64" ]; then
+          echo "🔎 Quét bảng xung nhịp hoặc giới hạn tần số trong arch/arm64:"
+          grep -R -E -n -i "1500000|1750000|2001000|g25|g35" ./arch/arm64/mach-mediatek/ 2>/dev/null || \
+          grep -R -E -n -i "1500000|1750000|2001000|g25|g35" ./arch/arm64/boot/dts/ 2>/dev/null || \
+          echo "Không tìm thấy cấu hình liên quan trong arch/arm64."
         else
-          echo "Thư mục $POWER_DIR không tồn tại trong nhánh này, bỏ qua."
+          echo "Thư mục arch/arm64 không tồn tại."
         fi
         echo "==============================================================="
         
