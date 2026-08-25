@@ -1,0 +1,96 @@
+name: Build kernel có dung lượng nhỏ nhất
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build_kernel:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
+
+    - name: Cài đặt các gói phụ thuộc
+      run: |
+        sudo apt update
+        sudo apt install -y git bc bison flex libssl-dev make \
+          libc6-dev libncurses5-dev curl build-essential wget zip unzip python2 python2-dev
+        
+        # Liên kết python2 làm mặc định
+        sudo ln -sf /usr/bin/python2 /usr/bin/python
+        python --version
+
+    - name: Tải Android Clang 9.0.3 (r353983c)
+      run: |
+        mkdir -p /home/runner/clang
+        echo "[+] Đang tải Clang r353983c..."
+        
+        curl -L -s "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/android10-release/clang-r353983c.tar.gz" -o clang.tar.gz
+        tar -xzf clang.tar.gz -C /home/runner/clang/
+        rm -f clang.tar.gz
+
+        echo "/home/runner/clang/bin" >> $GITHUB_PATH
+
+    - name: Tải AOSP GCC 4.9 (Toolchain phụ chuẩn cho Kernel 4.9)
+      run: |
+        mkdir -p /home/runner/gcc64
+        echo "[+] Đang tải Android GCC 4.9 prebuilt..."
+        
+        # Tải GCC 4.9 aarch64 chính thức từ kho lưu trữ Android AOSP
+        curl -L -s "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/android-10.0.0_r47.tar.gz" -o gcc64.tar.gz
+        tar -xzf gcc64.tar.gz -C /home/runner/gcc64/
+        rm -f gcc64.tar.gz
+
+        echo "/home/runner/gcc64/bin" >> $GITHUB_PATH
+
+    - name: Kiểm tra Toolchain
+      run: |
+        clang --version
+        aarch64-linux-android-gcc --version
+
+    - name: Compile Kernel Siêu Tối Giản
+      run: |
+        if [ -f "drivers/char/rpmb/rpmb-mtk.c" ]; then
+          git checkout -- drivers/char/rpmb/rpmb-mtk.c
+        fi
+
+        export ARCH=arm64
+        export SUBARCH=arm64
+        
+        # Trỏ CROSS_COMPILE sang GCC 4.9 của Android vừa tải về
+        export CC=clang
+        export CROSS_COMPILE=aarch64-linux-android-
+        export CLANG_TRIPLE=aarch64-linux-gnu-
+        
+        export HOSTCFLAGS="-fcommon"
+        export KCFLAGS="-Wno-ignored-qualifiers -Wno-error"
+        mkdir -p out
+
+        make O=out dandelion_defconfig
+        make O=out olddefconfig
+
+        make -j$(nproc --all) O=out \
+          CC=clang \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-android- \
+          HOSTCFLAGS="-fcommon" \
+          KCFLAGS="-Wno-ignored-qualifiers -Wno-error" \
+          LOCALVERSION="-perf-gd6489126e4e3" \
+          EXTRAVERSION=""
+
+    - name: Kiểm tra File Kernel Image
+      if: success()
+      run: |
+        if [ -f out/arch/arm64/boot/Image ]; then
+          echo "[+] Tìm thấy file Image nguyên bản thành công!"
+        else
+          echo "[-] LỖI: Không tìm thấy file Image tại out/arch/arm64/boot/!"
+          exit 1
+        fi
+
+    - name: Upload Kernel File
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Kernel-KSU.zip
+        path: out/arch/arm64/boot/Image
