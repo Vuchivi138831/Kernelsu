@@ -1,4 +1,4 @@
-name: Build kernel có dung lượng nhỏ nhất
+name: Build kernel với gcc và clang
 
 on:
   workflow_dispatch:
