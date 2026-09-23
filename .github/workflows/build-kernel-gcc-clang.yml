@@ -75,7 +75,7 @@ jobs:
           CROSS_COMPILE=aarch64-linux-android- \
           HOSTCFLAGS="-fcommon" \
           KCFLAGS="-Wno-ignored-qualifiers -Wno-error" \
-          LOCALVERSION="-perf-gd6489126e4e3" \
+          LOCALVERSION="-nha-dai-thong-bao" \
           EXTRAVERSION=""
 
     - name: Kiểm tra File Kernel Image
