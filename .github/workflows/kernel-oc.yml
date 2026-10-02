@@ -92,5 +92,5 @@ jobs:
       if: success()
       uses: actions/upload-artifact@v4
       with:
-        name: Kernel-KSU.zip
+        name: OC-2201MHz.zip
         path: out/arch/arm64/boot/Image
